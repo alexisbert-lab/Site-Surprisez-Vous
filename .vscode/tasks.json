@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Firebase: Emulateurs (tout)",
+      "type": "shell",
+      "command": "firebase emulators:start",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Firebase: Functions seulement",
+      "type": "shell",
+      "command": "firebase emulators:start --only functions",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Firebase: Hosting seulement",
+      "type": "shell",
+      "command": "firebase emulators:start --only hosting",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Firebase: Deploy tout",
+      "type": "shell",
+      "command": "firebase deploy",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

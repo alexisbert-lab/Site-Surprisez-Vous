@@ -1,0 +1,44 @@
+{
+  "name": "surprisez-vous",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "deploy": "rm -rf .next out && next build && firebase deploy --only hosting",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "tsx scripts/seed-firestore.ts",
+    "unseed": "tsx scripts/unseed-firestore.ts",
+    "create-users": "tsx scripts/create-auth-users.ts",
+    "delete-users": "tsx scripts/delete-auth-users.ts",
+    "reset-uids": "tsx scripts/reset-client-uids.ts"
+  },
+  "dependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/three": "^0.184.0",
+    "animejs": "^3.2.2",
+    "canvas-confetti": "^1.9.4",
+    "firebase": "^11.10.0",
+    "lucide-react": "^1.6.0",
+    "next": "^16.2.4",
+    "papaparse": "^5.5.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/animejs": "^3.1.13",
+    "@types/node": "^22.0.0",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "firebase-admin": "^13.8.0",
+    "googleapis": "^171.4.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

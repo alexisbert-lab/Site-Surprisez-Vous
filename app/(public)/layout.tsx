@@ -1,0 +1,26 @@
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import BalloonBackgroundLazy from '@/components/BalloonBackgroundLazy';
+import { ScrollProgress } from '@/components/ScrollProgress';
+import { IframeEditProvider } from '@/lib/iframe-edit-context';
+
+export default function PublicLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <IframeEditProvider>
+      <BalloonBackgroundLazy />
+      {/* Barre de progression scroll */}
+      <div id="sv-progress" style={{
+        position: 'fixed', top: 0, left: 0, height: 3,
+        background: 'linear-gradient(90deg, #E8185A, #F5A623, #3DBDB0)',
+        zIndex: 9999, transition: 'width 0.1s linear', pointerEvents: 'none',
+        width: '0%',
+      }} />
+      <ScrollProgress />
+      <Header />
+      <main className="flex-1" style={{ paddingTop: 154 }}>
+        {children}
+      </main>
+      <Footer />
+    </IframeEditProvider>
+  );
+}

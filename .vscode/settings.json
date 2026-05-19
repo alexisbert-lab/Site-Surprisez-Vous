@@ -1,0 +1,9 @@
+{
+  "cSpell.language": "fr,en",
+  "cSpell.enabledFileTypes": {
+    "markdown": false,
+    "javascript": false,
+    "typescript": false
+  },
+  "javascript.suggestionActions.enabled": false
+}

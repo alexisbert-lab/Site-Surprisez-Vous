@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette Surprisez-vous — Public */
+  --color-sv-primary: #E8185A;
+  --color-sv-primary-dark: #C4124A;
+  --color-sv-primary-light: #fdeaef;
+  --color-sv-teal: #3DBDB0;
+  --color-sv-teal-dark: #2a9a8e;
+  --color-sv-teal-light: #e8f8f7;
+  --color-sv-bv: #2B3EA0;
+  --color-sv-violet: #6B4FA0;
+  --color-sv-yellow: #F5A623;
+  --color-sv-orange: #E97132;
+  --color-sv-orange-dark: #c95e28;
+  --color-sv-orange-light: #fde8dd;
+  --color-sv-grey: #D1D1D1;
+  --color-sv-grey-dark: #9e9e9e;
+  --color-sv-grey-light: #f5f5f5;
+
+  /* Aliases pour Tailwind */
+  --color-primary: #E8185A;
+  --color-primary-dark: #C4124A;
+  --color-primary-light: #fdeaef;
+  --color-secondary: #3DBDB0;
+  --color-secondary-dark: #2a9a8e;
+  --color-secondary-light: #e8f8f7;
+  --color-accent: #F5A623;
+  --color-accent-alt: #2B3EA0;
+  --color-surface: #ffffff;
+  --color-bg: #fafbfc;
+  --color-admin-bg: #f0f4f7;
+  --color-ink: #1e2a35;
+  --color-ink-secondary: #6b7280;
+  --color-border: #e2e8f0;
+  --color-border-hover: #cbd5e1;
+
+  /* Dark background */
+  --color-dark-bg: #0d0a1a;
+
+  /* Shadows custom */
+  --shadow-primary: 0 8px 24px rgba(232,24,90,0.4);
+  --shadow-teal: 0 8px 24px rgba(61,189,176,0.4);
+  --shadow-card-hov: 0 20px 56px rgba(232,24,90,0.14);
+
+  /* Typographie */
+  --font-heading: var(--font-montserrat), "Montserrat", system-ui, sans-serif;
+  --font-body: var(--font-nunito), "Nunito", system-ui, sans-serif;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background: var(--color-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button, a, input, select, textarea {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+::selection {
+  background: var(--color-sv-primary-light);
+  color: var(--color-sv-primary-dark);
+}
+
+@keyframes brand-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Scroll reveal */
+@keyframes revealFromBottom { from{opacity:0;transform:translateY(48px)} to{opacity:1;transform:none} }
+@keyframes revealFromLeft   { from{opacity:0;transform:translateX(-60px)} to{opacity:1;transform:none} }
+@keyframes revealFromRight  { from{opacity:0;transform:translateX(60px)}  to{opacity:1;transform:none} }
+@keyframes revealScale      { from{opacity:0;transform:scale(0.78) rotate(-3deg)} to{opacity:1;transform:none} }
+
+/* Hero entrées */
+@keyframes heroFadeUp    { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:none} }
+@keyframes heroFadeIn    { from{opacity:0} to{opacity:1} }
+@keyframes heroSlideUp   { from{transform:translateY(100%)} to{transform:translateY(0)} }
+@keyframes heroSlideLeft { from{opacity:0;transform:translateX(-60px)} to{opacity:1;transform:none} }
+@keyframes scaleIn       { from{opacity:0;transform:scaleX(0)} to{opacity:1;transform:scaleX(1)} }
+
+/* Ballons */
+@keyframes balloonRise { 0%{transform:translateY(0) rotate(-3deg);opacity:0} 5%{opacity:1} 95%{opacity:.8} 100%{transform:translateY(-110vh) rotate(3deg);opacity:0} }
+@keyframes balloonRiseWobble { 0%{transform:translateY(0) rotate(-3deg);opacity:0} 25%{transform:translateY(-25vh) rotate(3deg) translateX(18px);opacity:1} 50%{transform:translateY(-50vh) rotate(-4deg) translateX(-12px)} 75%{transform:translateY(-75vh) rotate(2deg) translateX(10px)} 100%{transform:translateY(-110vh);opacity:0} }
+@keyframes floatA { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-16px) rotate(2deg)} }
+@keyframes floatB { 0%,100%{transform:translateY(-8px) rotate(1deg)} 50%{transform:translateY(8px) rotate(-3deg)} }
+
+/* Marquee */
+@keyframes marqueeScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-33.33%)} }
+
+/* Misc */
+@keyframes lineGrow   { from{transform:scaleX(0);opacity:0} to{transform:scaleX(1);opacity:1} }
+@keyframes dotPulse   { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:.6} }
+@keyframes meshFloat1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(3%,2%) scale(1.05)} 66%{transform:translate(-2%,4%) scale(.97)} }
+@keyframes meshFloat2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-4%,-3%) scale(1.06)} 70%{transform:translate(3%,-1%) scale(.95)} }
+
+/* ── Showroom page — immersive mode ── */
+body.showroom-page header,
+body.showroom-page footer { display: none !important; }
+body.showroom-page main { padding-top: 0 !important; }
+body.showroom-page #sv-progress { z-index: 1100 !important; }
+
+@keyframes svSpin      { to { transform: rotate(360deg) } }
+@keyframes svPulseY    { 0%,100%{opacity:.5;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(1.3)} }
+@keyframes svGradShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes svPinPulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18) translateY(-2px)} }
+@keyframes svMapGlow   { 0%,100%{box-shadow:0 0 60px #E8185A22,0 20px 80px rgba(0,0,0,.5)} 50%{box-shadow:0 0 80px #E8185A44,0 20px 80px rgba(0,0,0,.5)} }
+@keyframes svRingSpin  { to { transform: rotate(360deg) } }
+@keyframes svDotPulse  { 0%{box-shadow:0 0 0 0 #E8185A88} 70%{box-shadow:0 0 0 12px transparent} 100%{box-shadow:0 0 0 0 transparent} }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
