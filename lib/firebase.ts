@@ -2,6 +2,7 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 
 const firebaseConfig = {
   // Remplacer par les vraies valeurs depuis la console Firebase
@@ -12,6 +13,8 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'site-surprisez-vous.appspot.com',
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+  // Récupérer depuis Firebase console > Paramètres > Vos applications > measurementId (G-XXXXXXXXXX)
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
 };
 
 let app: FirebaseApp | undefined;
@@ -45,6 +48,18 @@ export function getFirebaseStorage(): FirebaseStorage {
     storage = getStorage(getApp());
   }
   return storage;
+}
+
+let analyticsInstance: Analytics | null = null;
+
+export async function initAnalytics(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  if (analyticsInstance) return;
+  try {
+    const supported = await isSupported();
+    if (!supported) return;
+    analyticsInstance = getAnalytics(getApp());
+  } catch {}
 }
 
 export function getProductImageUrl(ref: string): string {
