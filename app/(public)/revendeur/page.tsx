@@ -3,29 +3,20 @@
 import { useState, type FormEvent } from 'react';
 import EditableText from '@/components/editable/EditableText';
 import EditableLink from '@/components/editable/EditableLink';
-
-const GAMMES = ['DécoTable', 'Déguisez-Vous', 'FêteMaison', 'Festivitrines', 'NorthPole'];
-
-interface Revendeur {
-  nom: string;
-  adresse: string;
-  ville: string;
-  codePostal: string;
-  telephone: string;
-  gammes: string[];
-}
+import {
+  getActiveRevendeurs,
+  geocodePostalCode,
+  distanceKm,
+  type RevendeurResult,
+} from '@/lib/firestore/revendeurs';
 
 export default function RevendeurPage() {
   const [codePostal, setCodePostal] = useState('');
   const [rayon, setRayon] = useState('20');
-  const [selectedGammes, setSelectedGammes] = useState<string[]>([]);
-  const [results, setResults] = useState<Revendeur[]>([]);
+  const [results, setResults] = useState<RevendeurResult[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const toggleGamme = (g: string) =>
-    setSelectedGammes((prev) => prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -37,8 +28,19 @@ export default function RevendeurPage() {
     setLoading(true);
     setSearched(true);
     try {
-      await new Promise((r) => setTimeout(r, 800));
-      setResults([]);
+      const origin = await geocodePostalCode(codePostal);
+      if (!origin) {
+        setError('Code postal introuvable. Vérifiez votre saisie.');
+        setResults([]);
+        return;
+      }
+      const all = await getActiveRevendeurs();
+      const rayonKm = parseInt(rayon, 10);
+      const filtered = all
+        .map((r) => ({ ...r, distance: distanceKm(origin.lat, origin.lng, r.lat, r.lng) }))
+        .filter((r) => r.distance <= rayonKm)
+        .sort((a, b) => a.distance - b.distance);
+      setResults(filtered);
     } catch {
       setError('Erreur lors de la recherche. Veuillez réessayer.');
     } finally {
@@ -52,7 +54,7 @@ export default function RevendeurPage() {
         <EditableText page="revendeur" id="h1">Vous recherchez un revendeur près de chez vous ?</EditableText>
       </h1>
       <p className="text-ink-secondary mb-8">
-        <EditableText page="revendeur" id="intro">Complétez le formulaire ci-dessous, nous vous indiquerons par mail une liste de revendeurs près de chez vous.</EditableText>
+        <EditableText page="revendeur" id="intro">Saisissez votre code postal pour trouver les revendeurs les plus proches.</EditableText>
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -85,26 +87,6 @@ export default function RevendeurPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-2">Gammes recherchées</label>
-              <div className="flex flex-wrap gap-2">
-                {GAMMES.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => toggleGamme(g)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border cursor-pointer transition-colors ${
-                      selectedGammes.includes(g)
-                        ? 'bg-sv-primary text-white border-sv-primary'
-                        : 'bg-white text-ink border-border hover:border-sv-primary hover:text-sv-primary'
-                    }`}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button
@@ -127,16 +109,18 @@ export default function RevendeurPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {results.map((r, i) => (
-                    <div key={i} className="bg-white border border-border rounded-xl p-4">
-                      <h3 className="text-sm font-bold text-ink">{r.nom}</h3>
-                      <p className="text-xs text-ink-secondary">{r.adresse}, {r.codePostal} {r.ville}</p>
-                      {r.telephone && <p className="text-xs text-sv-primary mt-1">{r.telephone}</p>}
-                      <div className="flex gap-1 mt-2 flex-wrap">
-                        {r.gammes.map((g) => (
-                          <span key={g} className="text-[10px] bg-sv-primary-light text-sv-primary px-2 py-0.5 rounded-full">{g}</span>
-                        ))}
+                  {results.map((r) => (
+                    <div key={r.id} className="bg-white border border-border rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-bold text-ink">{r.nom}</h3>
+                        <span className="text-xs text-ink-secondary shrink-0">
+                          {r.distance! < 1 ? '< 1 km' : `${Math.round(r.distance!)} km`}
+                        </span>
                       </div>
+                      <p className="text-xs text-ink-secondary">
+                        {r.adresse}{r.adresse ? ', ' : ''}{r.codePostal} {r.ville}
+                      </p>
+                      {r.telephone && <p className="text-xs text-sv-primary mt-1">{r.telephone}</p>}
                     </div>
                   ))}
                 </div>
@@ -154,8 +138,7 @@ export default function RevendeurPage() {
             <ol className="text-sm text-ink-secondary space-y-2">
               <li className="flex gap-2"><span className="font-bold text-sv-primary shrink-0">1.</span>Saisissez votre code postal</li>
               <li className="flex gap-2"><span className="font-bold text-sv-primary shrink-0">2.</span>Choisissez un rayon de recherche</li>
-              <li className="flex gap-2"><span className="font-bold text-sv-primary shrink-0">3.</span>Sélectionnez les gammes souhaitées</li>
-              <li className="flex gap-2"><span className="font-bold text-sv-primary shrink-0">4.</span>Recevez la liste par e-mail</li>
+              <li className="flex gap-2"><span className="font-bold text-sv-primary shrink-0">3.</span>Consultez les revendeurs proches</li>
             </ol>
           </div>
           <div className="bg-sv-teal-light border border-sv-teal/20 rounded-xl p-5">

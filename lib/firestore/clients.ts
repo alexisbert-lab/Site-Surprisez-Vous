@@ -48,6 +48,10 @@ export interface Client {
   login?: string;
   motdepasse?: string;
   statut: 'Valide' | 'En attente' | 'Refuse';
+  revendeur?: {
+    lat?: number;
+    lng?: number;
+  };
 }
 
 export interface ProRequest {
