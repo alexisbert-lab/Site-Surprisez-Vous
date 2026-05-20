@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import BalloonBackgroundLazy from '@/components/BalloonBackgroundLazy';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { IframeEditProvider } from '@/lib/iframe-edit-context';
+import CookieBanner from '@/components/CookieBanner';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,6 +22,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         {children}
       </main>
       <Footer />
+      <CookieBanner />
     </IframeEditProvider>
   );
 }

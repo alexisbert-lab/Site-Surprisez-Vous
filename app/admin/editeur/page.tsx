@@ -36,7 +36,6 @@ const INTERNAL_ROUTES = [
   { label: 'Revendeurs',                path: '/revendeur' },
   { label: 'Devenir client pro',        path: '/espace-pro' },
   { label: 'Fiches techniques',         path: '/fiche-technique' },
-  { label: 'Boîte à idées',            path: '/boite-a-idees' },
   { label: 'Mentions légales',          path: '/mentions-legales' },
   { label: 'Connexion',                 path: '/connexion' },
   { label: '— Espace pro —',           path: '' },

@@ -60,12 +60,12 @@ export default function MentionsLegalesPage() {
           </p>
         </section>
 
-        <section>
+        <section id="protection-donnees">
           <h2 className="text-base font-bold text-ink mb-2">
             <EditableText page="mentions-legales" id="s6_title">Protection des données personnelles (RGPD)</EditableText>
           </h2>
-          <p>
-            <EditableText page="mentions-legales" id="s6_content" multiline>{"Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez d'un droit d'accès, de rectification, de suppression et de portabilité de vos données personnelles. Vous pouvez exercer ces droits en contactant le responsable du traitement à l'adresse contact@surprisez-vous.fr."}</EditableText>
+          <p style={{ whiteSpace: 'pre-line' }}>
+            <EditableText page="mentions-legales" id="s6_content" multiline>{`Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés, vous disposez des droits suivants :\n• Droit d'accès (art. 15) : obtenir une copie de vos données\n• Droit de rectification (art. 16) : corriger des données inexactes\n• Droit à l'effacement (art. 17) : demander la suppression de vos données\n• Droit à la limitation du traitement (art. 18) : restreindre l'utilisation de vos données\n• Droit à la portabilité (art. 20) : recevoir vos données dans un format structuré\n• Droit d'opposition (art. 21) : vous opposer au traitement de vos données\n\nBase légale du traitement : exécution du contrat (gestion des commandes), intérêt légitime (amélioration du service), consentement (newsletter).\n\nDurée de conservation : vos données sont conservées pendant la durée de la relation commerciale et 3 ans après le dernier contact, sauf obligation légale contraire.\n\nPour exercer vos droits, contactez le responsable du traitement : contact@surprisez-vous.fr\n\nEn cas de réponse insatisfaisante, vous pouvez introduire une réclamation auprès de la CNIL (www.cnil.fr) — 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07 — conformément à l'article 77 du RGPD.`}</EditableText>
           </p>
           <p className="mt-2">
             Pour toute demande d&apos;oubli numérique, veuillez utiliser notre{' '}
@@ -73,12 +73,12 @@ export default function MentionsLegalesPage() {
           </p>
         </section>
 
-        <section>
+        <section id="cookies">
           <h2 className="text-base font-bold text-ink mb-2">
             <EditableText page="mentions-legales" id="s7_title">Cookies</EditableText>
           </h2>
-          <p>
-            <EditableText page="mentions-legales" id="s7_content">Ce site utilise des cookies techniques nécessaires au bon fonctionnement du service. Aucun cookie publicitaire ou de tracking n'est utilisé.</EditableText>
+          <p style={{ whiteSpace: 'pre-line' }}>
+            <EditableText page="mentions-legales" id="s7_content" multiline>{`Ce site utilise deux catégories de cookies :\n\n• Cookies strictement nécessaires : authentification, session de navigation. Aucun consentement requis.\n• Cookies analytiques : Google Analytics (via Firebase Analytics) pour mesurer l'audience et améliorer le service. Ces cookies ne sont activés qu'après votre consentement explicite.\n\nVous pouvez accepter ou refuser les cookies analytiques via le bandeau affiché lors de votre première visite. Votre choix est mémorisé et peut être modifié en vidant les données de votre navigateur.`}</EditableText>
           </p>
         </section>
 
