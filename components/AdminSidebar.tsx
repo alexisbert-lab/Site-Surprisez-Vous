@@ -28,6 +28,7 @@ const navGroups: NavGroup[] = [
     title: 'Clients & Marketing',
     items: [
       { href: '/admin/crm', label: 'CRM / Clients' },
+      { href: '/admin/revendeurs', label: 'Revendeurs' },
       { href: '/admin/groupes-contact', label: 'Groupes de contact' },
       { href: '/admin/marketing', label: 'Marketing' },
     ],
