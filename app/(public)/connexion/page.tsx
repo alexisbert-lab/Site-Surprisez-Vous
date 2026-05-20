@@ -12,7 +12,7 @@ export default function ConnexionPage() {
 
   useEffect(() => {
     if (!loading && user && (profile?.role === 'pro' || profile?.role === 'admin')) {
-      router.push('/pro/dashboard');
+      router.push('/');
     }
   }, [user, profile, loading, router]);
 
@@ -31,7 +31,7 @@ export default function ConnexionPage() {
         <div className="max-w-sm">
           <p className="text-sm font-bold text-ink mb-4">Vous êtes un(e) professionnel(le) ?</p>
           <LoginForm
-            onSuccess={() => router.push('/pro/dashboard')}
+            onSuccess={() => router.push('/')}
             title=""
             subtitle=""
           />

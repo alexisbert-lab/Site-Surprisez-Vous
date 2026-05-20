@@ -64,7 +64,7 @@ export default function ProHeader({ onSearch }: ProHeaderProps) {
       {/* Main header */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-5 flex items-center gap-3 sm:gap-5 h-14">
         {/* Logo */}
-        <Link href="/pro/dashboard" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity">
           {header.logo_image_url ? (
             <Image 
               src={header.logo_image_url} 
