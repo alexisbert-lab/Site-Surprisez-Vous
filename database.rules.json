@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "notifications": {
+      "admin": {
+        // Lecture + suppression : admins uniquement (custom claim posé par setAdminClaim)
+        ".read": "auth != null && auth.token.admin === true",
+        // Écriture : tout utilisateur authentifié (createOrder est appelé côté client)
+        ".write": "auth != null",
+        "$notifId": {
+          ".validate": "newData.hasChildren(['type', 'label', 'at'])"
+        }
+      }
+    },
+    // Tout le reste est fermé par défaut
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

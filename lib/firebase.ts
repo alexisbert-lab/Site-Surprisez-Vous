@@ -3,6 +3,7 @@ import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
+import { getDatabase, type Database } from 'firebase/database';
 
 const firebaseConfig = {
   // Remplacer par les vraies valeurs depuis la console Firebase
@@ -10,6 +11,7 @@ const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'demo-key',
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'site-surprisez-vous.web.app',
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'site-surprisez-vous',
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || `https://site-surprisez-vous-default-rtdb.firebaseio.com`,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'site-surprisez-vous.appspot.com',
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
@@ -21,6 +23,7 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
+let rtdb: Database | undefined;
 
 function getApp(): FirebaseApp {
   if (!app) {
@@ -48,6 +51,13 @@ export function getFirebaseStorage(): FirebaseStorage {
     storage = getStorage(getApp());
   }
   return storage;
+}
+
+export function getFirebaseRTDB(): Database {
+  if (!rtdb) {
+    rtdb = getDatabase(getApp());
+  }
+  return rtdb;
 }
 
 let analyticsInstance: Analytics | null = null;

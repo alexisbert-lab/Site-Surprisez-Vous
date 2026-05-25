@@ -10,6 +10,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase';
+import { pushOrderNotif } from '../rtdb/notifications';
 
 const db = () => getFirebaseDb();
 
@@ -45,6 +46,7 @@ export async function updateOrderStatus(id: string, statut: Order['statut']): Pr
 export async function createOrder(order: Omit<Order, 'id'>): Promise<string> {
   const ref = doc(collection(db(), 'orders'));
   await setDoc(ref, order);
+  pushOrderNotif(ref.id, `Nouvelle commande — ${order.client} (${order.montant_ht.toFixed(2)} € HT)`);
   return ref.id;
 }
 
