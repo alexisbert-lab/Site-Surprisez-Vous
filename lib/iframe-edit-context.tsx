@@ -7,6 +7,7 @@ import { api } from './api';
 // Keys: "${page}|${id}" for text, "${page}|${id}__color" for color, etc.
 interface IframeEditContextValue {
   isIframeMode: boolean;
+  isContentReady: boolean;
   getContent: (page: string, id: string) => string | undefined;
   getStyle: (page: string, id: string) => React.CSSProperties;
   getBlockStyle: (page: string, id: string) => React.CSSProperties;
@@ -16,6 +17,7 @@ interface IframeEditContextValue {
 
 const IframeEditContext = createContext<IframeEditContextValue>({
   isIframeMode: false,
+  isContentReady: false,
   getContent: () => undefined,
   getStyle: () => ({}),
   getBlockStyle: () => ({}),
@@ -43,6 +45,7 @@ export function IframeEditProvider({
     return seed;
   });
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [isContentReady, setIsContentReady] = useState(false);
 
   // Pages déjà chargées (SSR ou CF) — ne pas re-fetcher
   const loadedRef = useRef(new Set<string>(Object.keys(initialPages ?? {})));
@@ -52,6 +55,12 @@ export function IframeEditProvider({
     : pathname === '/' ? 'home'
     : pathname.replace(/^\//, '').replace(/\//g, '-');
 
+  // Fallback : libère le loader après 3s même si le CF ne répond pas
+  useEffect(() => {
+    const t = setTimeout(() => setIsContentReady(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     const isIframe = new URLSearchParams(window.location.search).get('_editmode') === '1';
     if (isIframe) setIsIframeMode(true);
@@ -60,6 +69,7 @@ export function IframeEditProvider({
     const pages = ['header', ...(pageId !== 'header' ? [pageId] : [])];
     const toLoad = pages.filter(pg => !loadedRef.current.has(pg));
     if (toLoad.length === 0) {
+      setIsContentReady(true);
       if (isIframe) window.parent.postMessage({ type: 'IFRAME_READY', pageId }, '*');
       return;
     }
@@ -74,8 +84,10 @@ export function IframeEditProvider({
           });
           return next;
         });
+        setIsContentReady(true);
         if (isIframe) window.parent.postMessage({ type: 'IFRAME_READY', pageId }, '*');
-      });
+      })
+      .catch(() => setIsContentReady(true));
   }, [pageId]);
 
   // Handle messages from admin parent
@@ -219,7 +231,7 @@ export function IframeEditProvider({
   };
 
   return (
-    <IframeEditContext.Provider value={{ isIframeMode, getContent, getStyle, getBlockStyle, notifySelected, notifyBlockSelected }}>
+    <IframeEditContext.Provider value={{ isIframeMode, isContentReady, getContent, getStyle, getBlockStyle, notifySelected, notifyBlockSelected }}>
       {children}
     </IframeEditContext.Provider>
   );

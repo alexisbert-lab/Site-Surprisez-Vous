@@ -8,6 +8,7 @@ import { useSiteTheme } from '@/lib/site-theme-context';
 import { useState } from 'react';
 import ProSearchInput from '@/components/layout/ProSearchInput';
 import { ShoppingCart, Menu, X } from 'lucide-react';
+import ProNotificationBell from '@/components/ui/ProNotificationBell';
 
 interface ProHeaderProps {
   onSearch?: (query: string) => void;
@@ -117,9 +118,10 @@ export default function ProHeader({ onSearch }: ProHeaderProps) {
           >
             Mon Espace
           </Link>
+          <ProNotificationBell />
           <CartButton />
-          <button 
-            onClick={logout} 
+          <button
+            onClick={logout}
             className="ml-4 px-3 py-1.5 border text-sm text-ink-secondary rounded-lg hover:bg-sv-grey-light transition-colors cursor-pointer"
             style={{ borderColor: colors.sv_primary + '33' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = colors.sv_primary)}

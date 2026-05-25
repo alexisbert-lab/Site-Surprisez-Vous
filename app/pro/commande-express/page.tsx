@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import anime from 'animejs';
-import { getProducts, filterArticlesVisibles, type Product } from '@/lib/firestore/products';
+import { filterArticlesVisibles, type Product } from '@/lib/firestore/products';
 import { createOrder } from '@/lib/firestore/orders';
 import { useAuth } from '@/lib/auth-context';
+import { api } from '@/lib/api';
 
 interface CartLine { ref: string; designation: string; prix: number; qte: number; }
 
@@ -22,7 +23,7 @@ export default function CommandeExpressPage() {
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
 
   useEffect(() => {
-    getProducts().then((data) => {
+    api.getProducts().then((data) => {
       const map: Record<string, Product> = {};
       filterArticlesVisibles(data).forEach((p) => { map[p.pdt_reference.toUpperCase()] = p; });
       setCatalogue(map);
