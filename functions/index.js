@@ -1,6 +1,6 @@
 const functions = require("firebase-functions");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
@@ -1521,6 +1521,20 @@ exports.instagramFeed = functions.https.onRequest(async (req, res) => {
 
 // Rafraîchit automatiquement le token Instagram tous les 30 jours.
 // Le token longue durée dure 60 j — on renouvelle à mi-chemin pour ne jamais expirer.
+// ── Warmup toutes les 5 min : maintient Next.js + cacheData chauds ───────────
+exports.warmupCache = onSchedule(
+  { schedule: "*/5 * * * *", timeZone: "Europe/Paris" },
+  async () => {
+    if (!NEXTJS_BASE_URL) return;
+    try {
+      await fetch(`${NEXTJS_BASE_URL}/api/warmup${CACHE_SECRET ? `?secret=${CACHE_SECRET}` : ""}`);
+      console.log("[warmup] OK");
+    } catch (e) {
+      console.warn("[warmup] Erreur :", e.message);
+    }
+  }
+);
+
 exports.autoRefreshInstagramToken = onSchedule("0 0 1 * *", async () => {
   const creds = await getIgCredentials();
   if (!creds) {
@@ -1543,5 +1557,21 @@ exports.autoRefreshInstagramToken = onSchedule("0 0 1 * *", async () => {
     console.log("[autoRefreshInstagramToken] Token rafraîchi avec succès.");
   } catch (err) {
     console.error("[autoRefreshInstagramToken] Échec :", err.message);
+  }
+});
+
+// ===== Custom claims admin =====
+// Pose auth.token.admin = true dès que users/{uid}.role === 'admin'
+// Utilisé par les règles RTDB pour restreindre /notifications/admin
+exports.setAdminClaim = onDocumentWritten("users/{uid}", async (event) => {
+  const uid = event.params.uid;
+  const after = event.data?.after?.data();
+
+  const isAdmin = after?.role === "admin";
+  try {
+    await admin.auth().setCustomUserClaims(uid, { admin: isAdmin });
+    console.log(`[setAdminClaim] uid=${uid} admin=${isAdmin}`);
+  } catch (err) {
+    console.error(`[setAdminClaim] Erreur uid=${uid}:`, err.message);
   }
 });

@@ -4,7 +4,7 @@ import { getCachedProducts, getCachedStatCategories } from '@/lib/server-cache';
 // Appelé par le cron Vercel toutes les 5 min pour maintenir les caches chauds.
 export async function GET(req: Request) {
   const secret = new URL(req.url).searchParams.get('secret');
-  if (process.env.WARMUP_SECRET && secret !== process.env.WARMUP_SECRET) {
+  if (process.env.CACHE_SECRET && secret !== process.env.CACHE_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
