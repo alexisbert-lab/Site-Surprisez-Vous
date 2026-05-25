@@ -84,6 +84,7 @@ export function EditModeProvider({ children }: { children: React.ReactNode }) {
       byPage[page][id] = value;
     });
     await Promise.all(Object.entries(byPage).map(([page, data]) => savePageContent(page, data)));
+    api.invalidate('page-content').catch(() => {});
     setContent((prev) => ({ ...prev, ...pendingChanges }));
     setPendingChanges({});
     setIsSaving(false);

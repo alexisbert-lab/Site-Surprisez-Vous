@@ -18,18 +18,8 @@ export default function ProLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, profile, loading, router]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-sv-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-ink-secondary">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user || (profile?.role !== 'pro' && profile?.role !== 'admin')) return null;
+  // Auth résolue et non autorisée → null (le useEffect redirige)
+  if (!loading && (!user || (profile?.role !== 'pro' && profile?.role !== 'admin'))) return null;
 
   return (
     <IframeEditProvider>

@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
 
 // Lazy reference — admin.initializeApp() is called by index.js before any request
 const db = () => admin.firestore();
@@ -152,7 +152,9 @@ async function verifyIdToken(req) {
 
 // ─── Cloud Function export ────────────────────────────────────────────────────
 
-const handler = functions.https.onRequest(async (req, res) => {
+const handler = onRequest(
+  { region: 'us-central1', minInstances: 1, memory: '256MiB', timeoutSeconds: 60, cors: true },
+  async (req, res) => {
   setCorsHeaders(res);
   if (req.method === 'OPTIONS') return res.status(204).send('');
 
