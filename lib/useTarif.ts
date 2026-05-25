@@ -13,6 +13,13 @@ interface UseTarifResult {
 // Cache module-level pour éviter de re-fetcher Firestore entre re-renders
 const tarifCache = new Map<string, Map<string, TarifLine>>();
 
+/** Appelé au login pour pré-charger la grille tarifaire en mémoire. */
+export async function prefetchTarif(gridId: string): Promise<void> {
+  if (tarifCache.has(gridId)) return;
+  const map = await getTarifLinesMap(gridId);
+  if (map.size > 0) tarifCache.set(gridId, map);
+}
+
 export function useTarif(): UseTarifResult {
   const { user, profile, loading: authLoading } = useAuth();
   const [linesMap, setLinesMap] = useState<Map<string, TarifLine>>(new Map());

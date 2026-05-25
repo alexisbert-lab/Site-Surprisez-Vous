@@ -5,11 +5,14 @@ import { ScrollProgress } from '@/components/ScrollProgress';
 import { IframeEditProvider } from '@/lib/iframe-edit-context';
 import { getCachedPageContent } from '@/lib/server-cache';
 import CookieBanner from '@/components/CookieBanner';
+import PageLoader from '@/components/PageLoader';
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const headerContent = await getCachedPageContent('header');
+  const logoSrc = headerContent?.logo_image ?? '';
   return (
     <IframeEditProvider initialPages={{ header: headerContent }}>
+      <PageLoader logoSrc={logoSrc} />
       <BalloonBackgroundLazy />
       {/* Barre de progression scroll */}
       <div id="sv-progress" style={{

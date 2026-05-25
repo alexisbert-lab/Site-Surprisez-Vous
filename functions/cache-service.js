@@ -153,7 +153,7 @@ async function verifyIdToken(req) {
 // ─── Cloud Function export ────────────────────────────────────────────────────
 
 const handler = onRequest(
-  { region: 'us-central1', minInstances: 1, memory: '256MiB', timeoutSeconds: 60, cors: true },
+  { region: 'us-central1', memory: '256MiB', timeoutSeconds: 60, cors: true },
   async (req, res) => {
   setCorsHeaders(res);
   if (req.method === 'OPTIONS') return res.status(204).send('');

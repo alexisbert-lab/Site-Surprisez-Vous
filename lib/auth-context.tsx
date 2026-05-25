@@ -10,6 +10,7 @@ import {
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from './firebase';
 import { getClientByEmail, linkClientToUser, type Client } from './firestore/clients';
+import { prefetchUserData, clearPrefetchCache } from './prefetch';
 
 // Cache module-level : évite de requêter Firestore à chaque onAuthStateChanged
 const clientCache = new Map<string, Client | null>();
@@ -115,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (firebaseUser) {
           const p = await fetchUserProfile(firebaseUser.uid, firebaseUser.email);
           setProfile(p);
+          // Pré-charge toutes les données en arrière-plan sans bloquer l'UI
+          setTimeout(() => prefetchUserData(firebaseUser, p).catch(() => {}), 0);
         } else {
           setProfile(null);
         }
@@ -132,7 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await signOut(getFirebaseAuth());
     setProfile(null);
-    clientCache.clear();
+    clientCache.clear();      // cache email→Client (module-level Map)
+    clearPrefetchCache();     // localStorage + verrou uid
   };
 
   return (

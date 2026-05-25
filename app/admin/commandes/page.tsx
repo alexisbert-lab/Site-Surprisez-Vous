@@ -40,7 +40,8 @@ export default function AdminCommandesPage() {
   }, [orders, search, statusFilter, dateFrom, dateTo]);
 
   const handleStatusChange = async (orderId: string, newStatus: Order['statut']) => {
-    await updateOrderStatus(orderId, newStatus);
+    const order = orders.find((o) => o.id === orderId);
+    await updateOrderStatus(orderId, newStatus, order?.clientEmail);
     invalidateAdminCache('orders');
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, statut: newStatus } : o)));
   };
