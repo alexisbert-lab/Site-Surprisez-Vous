@@ -4,6 +4,7 @@ import BalloonBackgroundLazy from '@/components/BalloonBackgroundLazy';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { IframeEditProvider } from '@/lib/iframe-edit-context';
 import { getCachedPageContent } from '@/lib/server-cache';
+import CookieBanner from '@/components/CookieBanner';
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const headerContent = await getCachedPageContent('header');
@@ -23,6 +24,7 @@ export default async function PublicLayout({ children }: { children: React.React
         {children}
       </main>
       <Footer />
+      <CookieBanner />
     </IframeEditProvider>
   );
 }

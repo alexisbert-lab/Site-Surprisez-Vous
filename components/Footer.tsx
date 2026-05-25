@@ -56,11 +56,20 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-bold mb-4 text-sm uppercase tracking-wide"><EditableText page="footer" id="col3_title">Newsletter</EditableText></h4>
             <p className="text-white/80 text-sm mb-4 leading-relaxed"><EditableText page="footer" id="col3_desc" multiline>Recevez nos dernières nouveautés et offres exclusives en avant-première.</EditableText></p>
-            <div className="flex rounded-lg overflow-hidden">
-              <input type="email" placeholder="Votre e-mail" className="flex-1 px-3 py-2 text-sm outline-none min-w-0 bg-white" />
-              <button className="bg-sv-yellow hover:opacity-90 px-3 flex items-center justify-center text-white transition-opacity cursor-pointer">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-              </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex rounded-lg overflow-hidden">
+                <input type="email" placeholder="Votre e-mail" className="flex-1 px-3 py-2 text-sm outline-none min-w-0 bg-white" />
+                <button className="bg-sv-yellow hover:opacity-90 px-3 flex items-center justify-center text-white transition-opacity cursor-pointer">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                </button>
+              </div>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" className="mt-0.5 shrink-0 accent-sv-yellow" />
+                <span className="text-white/70 text-xs leading-relaxed">
+                  J&apos;accepte de recevoir la newsletter et que mes données soient traitées conformément à la{' '}
+                  <Link href="/mentions-legales#protection-donnees" className="underline hover:text-white">politique de confidentialité</Link>.
+                </span>
+              </label>
             </div>
           </div>
         </div>
@@ -91,13 +100,11 @@ export default function Footer() {
       <div className="bg-white border-t border-gray-100">
         <div className="max-w-[1200px] mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between text-xs text-gray-500 gap-2">
           <div className="flex items-center gap-2 flex-wrap justify-center">
-            <Link href="/mentions-legales" className="hover:text-sv-primary transition-colors">Mentions légales</Link>
-            <span className="text-gray-300">-</span>
-            <Link href="/mentions-legales" className="hover:text-sv-primary transition-colors">RGPD</Link>
+            <Link href="/mentions-legales" className="hover:text-sv-primary transition-colors">Mentions légales &amp; RGPD</Link>
             <span className="text-gray-300">-</span>
             <Link href="/pro/cgv" className="hover:text-sv-primary transition-colors">CGV</Link>
             <span className="text-gray-300">-</span>
-            <Link href="#" className="hover:text-sv-primary transition-colors">Plan du site</Link>
+            <Link href="/plan-du-site" className="hover:text-sv-primary transition-colors">Plan du site</Link>
           </div>
           <span>&copy; {new Date().getFullYear()} Surprisez-Vous - Tous droits réservés.</span>
         </div>
