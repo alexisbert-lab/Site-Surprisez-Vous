@@ -3,10 +3,12 @@ import Footer from '@/components/Footer';
 import BalloonBackgroundLazy from '@/components/BalloonBackgroundLazy';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { IframeEditProvider } from '@/lib/iframe-edit-context';
+import { getCachedPageContent } from '@/lib/server-cache';
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  const headerContent = await getCachedPageContent('header');
   return (
-    <IframeEditProvider>
+    <IframeEditProvider initialPages={{ header: headerContent }}>
       <BalloonBackgroundLazy />
       {/* Barre de progression scroll */}
       <div id="sv-progress" style={{

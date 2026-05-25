@@ -23,12 +23,29 @@ const IframeEditContext = createContext<IframeEditContextValue>({
   notifyBlockSelected: () => {},
 });
 
-export function IframeEditProvider({ children }: { children: React.ReactNode }) {
+export function IframeEditProvider({
+  children,
+  initialPages,
+}: {
+  children: React.ReactNode;
+  initialPages?: Record<string, Record<string, string>>;
+}) {
   const pathname = usePathname();
   const [isIframeMode, setIsIframeMode] = useState(false);
-  const [store, setStore] = useState<Record<string, string>>({});
+
+  // Seed le store avec le contenu SSR pour éviter l'appel CF client-side
+  const [store, setStore] = useState<Record<string, string>>(() => {
+    if (!initialPages) return {};
+    const seed: Record<string, string> = {};
+    Object.entries(initialPages).forEach(([pg, data]) => {
+      Object.entries(data).forEach(([k, v]) => { seed[`${pg}|${k}`] = v as string; });
+    });
+    return seed;
+  });
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const loadedRef = useRef(new Set<string>());
+
+  // Pages déjà chargées (SSR ou CF) — ne pas re-fetcher
+  const loadedRef = useRef(new Set<string>(Object.keys(initialPages ?? {})));
 
   const pageId = pathname === '/header-preview' ? 'header'
     : pathname === '/footer-preview' ? 'footer'
