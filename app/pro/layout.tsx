@@ -25,7 +25,7 @@ export default function ProLayout({ children }: { children: React.ReactNode }) {
     <IframeEditProvider>
       <CartProvider>
         <ProHeader />
-        <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-5 pb-5 sm:pb-7" style={{ paddingTop: 154 }}>{children}</main>
+        <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-5 pb-5 sm:pb-7" style={{ paddingTop: 72 }}>{children}</main>
         <Footer />
       </CartProvider>
     </IframeEditProvider>
