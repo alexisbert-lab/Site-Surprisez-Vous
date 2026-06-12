@@ -178,6 +178,10 @@ export default function CatalogueClient({ products, statCategories, marques, pro
     { key: 'search', label: 'Recherche' },
   ];
 
+  const DISABLED_TABS = [
+    { label: 'Par thème', soon: true },
+  ];
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-extrabold text-sv-primary mb-2 font-[family-name:var(--font-heading)]">
@@ -206,6 +210,15 @@ export default function CatalogueClient({ products, statCategories, marques, pro
           >
             {label}
           </button>
+        ))}
+        {DISABLED_TABS.map(({ label }) => (
+          <span
+            key={label}
+            title="Bientôt disponible"
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-ink-secondary/40 cursor-not-allowed select-none"
+          >
+            {label}
+          </span>
         ))}
       </div>
 
