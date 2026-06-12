@@ -15,11 +15,11 @@ import EditableBlock from '@/components/editable/EditableBlock';
 import EditableLink from '@/components/editable/EditableLink';
 
 const NAV_ITEMS = [
-  { label: 'Accueil',      href: '/',          sub: null },
-  { label: 'Nos produits', href: '/catalogue',  sub: ['Ballons & Accessoires', 'Cadeaux Anniversaire', 'Déco Anniversaire', 'Nos nouveautés'] },
-  { label: 'Gammes',       href: '/univers',    sub: ['Rétropop', 'Gamme Rouge', 'Générique', 'Léopard'] },
-  { label: 'Marques',      href: '/showroom',   sub: ['MDR', 'Fête à DÉCO', 'Oui pour la vie', 'Zéro de Conduite', 'OptimiZline'] },
-  { label: 'Showrooms',    href: '/showroom',   sub: null },
+  { label: 'Accueil',      href: '/',                       sub: null },
+  { label: 'Nos produits', href: '/catalogue',              sub: [{ label: 'Par gamme', href: '/catalogue?tab=gamme' }, { label: 'Par marque', href: '/catalogue?tab=marque' }, { label: 'Recherche', href: '/catalogue?tab=search' }] },
+  { label: 'Gammes',       href: '/catalogue?tab=gamme',   sub: null },
+  { label: 'Marques',      href: '/catalogue?tab=marque',  sub: null },
+  { label: 'Showrooms',    href: '/showroom',               sub: null },
 ];
 
 export default function Header() {
@@ -151,9 +151,7 @@ export default function Header() {
                 hrefId={`nav_${i}_href`}
                 href={item.href}
                 label={<EditableText page="header" id={`nav_${i}`}>{item.label}</EditableText>}
-                sub={item.sub?.map((s, j) => (
-                  <EditableText key={j} page="header" id={`nav_${i}_sub_${j}`}>{s}</EditableText>
-                ))}
+                sub={item.sub ?? undefined}
               />
             ))}
           </nav>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { filterArticlesVisiblesWithStatCats, type Product } from '@/lib/firestore/products';
 import { type StatCategory } from '@/lib/firestore/stat-categories';
@@ -93,6 +93,7 @@ function MarqueGrid({ marques, onSelect }: {
 export default function CatalogueClient({ products, statCategories, marques, productMarques }: Props) {
   const { profile, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!loading && (profile?.role === 'pro' || profile?.role === 'admin')) {
@@ -100,7 +101,8 @@ export default function CatalogueClient({ products, statCategories, marques, pro
     }
   }, [loading, profile, router]);
 
-  const [tab, setTab] = useState<Tab>('gamme');
+  const initialTab = (searchParams.get('tab') as Tab | null) ?? 'gamme';
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [selectedGamme, setSelectedGamme] = useState<string | null>(null);
   const [selectedMarque, setSelectedMarque] = useState<string | null>(null);
   const [search, setSearch] = useState('');
