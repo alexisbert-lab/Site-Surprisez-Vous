@@ -821,6 +821,7 @@ async function syncCommandesCsv(rows) {
   }
 
   if (ops % 450 !== 0) await batch.commit();
+  await invalidateCF("commandes");
   return { nouveau, modifie, inchange };
 }
 

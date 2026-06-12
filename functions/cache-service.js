@@ -92,6 +92,13 @@ async function readClients() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+async function readCommandes(cltId) {
+  let q = db().collection('commandes').orderBy('date', 'desc');
+  if (cltId) q = q.where('clt_id', '==', cltId);
+  const snap = await q.get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 // ─── Core cache getter ────────────────────────────────────────────────────────
 
 const READERS = {
@@ -104,6 +111,7 @@ const READERS = {
   'marques':         (p) => readMarques(),
   'tarif-lines':     (p) => readTarifLines(p.gridId),
   'clients':         (p) => readClients(),
+  'commandes':       (p) => readCommandes(p.cltId),
 };
 
 async function getFromCache(collection, params = {}) {
@@ -141,7 +149,7 @@ function setCorsHeaders(res) {
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
-const PROTECTED = new Set(['tarif-lines', 'clients', 'orders']);
+const PROTECTED = new Set(['tarif-lines', 'clients', 'orders', 'commandes']);
 const ADMIN_ONLY = new Set(['clients']);
 
 async function verifyIdToken(req) {
