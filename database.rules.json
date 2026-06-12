@@ -9,6 +9,17 @@
         "$notifId": {
           ".validate": "newData.hasChildren(['type', 'label', 'at'])"
         }
+      },
+      "clients": {
+        "$uid": {
+          // Lecture : uniquement le client lui-même (auth.uid === son propre UID)
+          ".read": "auth != null && auth.uid === $uid",
+          // Écriture : le client lui-même (markRead, clear) ou un admin (pushClientOrderNotif côté CF)
+          ".write": "auth != null && (auth.uid === $uid || auth.token.admin === true)",
+          "$notifId": {
+            ".validate": "newData.hasChildren(['orderId', 'label', 'statut', 'at'])"
+          }
+        }
       }
     },
     // Tout le reste est fermé par défaut

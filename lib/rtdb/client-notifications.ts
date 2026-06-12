@@ -52,7 +52,7 @@ export function subscribeClientNotifs(
   return onValue(r, snap => {
     if (!snap.exists()) { cb([]); return; }
     const items: ClientNotif[] = [];
-    snap.forEach(child => items.push({ id: child.key!, ...child.val() }));
+    snap.forEach(child => { items.push({ id: child.key!, ...child.val() }); });
     cb(items.sort((a, b) => b.at - a.at));
   });
 }

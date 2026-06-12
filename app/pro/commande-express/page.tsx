@@ -10,7 +10,7 @@ import { api } from '@/lib/api';
 interface CartLine { ref: string; designation: string; prix: number; qte: number; }
 
 export default function CommandeExpressPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [catalogue, setCatalogue] = useState<Record<string, Product>>({});
   const [cart, setCart] = useState<CartLine[]>([]);
   const [ref, setRef] = useState('');
@@ -22,13 +22,17 @@ export default function CommandeExpressPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
 
+  const catIds = profile?.cat_ids;
+
   useEffect(() => {
     api.getProducts().then((data) => {
       const map: Record<string, Product> = {};
-      filterArticlesVisibles(data).forEach((p) => { map[p.pdt_reference.toUpperCase()] = p; });
+      filterArticlesVisibles(data)
+        .filter((p) => !catIds?.length || p.cat_ids?.some((id) => catIds.includes(id)))
+        .forEach((p) => { map[p.pdt_reference.toUpperCase()] = p; });
       setCatalogue(map);
     });
-  }, []);
+  }, [catIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Animer l'entrée des nouvelles lignes
   useEffect(() => {

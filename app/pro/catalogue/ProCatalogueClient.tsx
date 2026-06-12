@@ -78,9 +78,10 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
   // Affiche tous les produits tant que l'auth charge (catIds inconnus),
   // puis filtre une fois le profil disponible.
   const authorizedProducts = useMemo(() => {
-    if (!authLoading && catIds !== undefined && catIds.length > 0)
-      return resolvedProducts.filter((p) => p.cat_ids?.some((id) => catIds.includes(id)));
-    return resolvedProducts;
+    // catIds absent ou vide = client sans restriction → voit tout
+    if (authLoading || !catIds?.length) return resolvedProducts;
+    // Client avec catalogue : UNIQUEMENT les produits appartenant à ses catalogues
+    return resolvedProducts.filter((p) => p.cat_ids?.some((id) => catIds.includes(id)));
   }, [authLoading, catIds, resolvedProducts]);
 
   const items = useMemo(() => buildItems(authorizedProducts, declinationsList), [authorizedProducts, declinationsList]);

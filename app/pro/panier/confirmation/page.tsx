@@ -5,17 +5,33 @@ import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
+import { createOrder } from '@/lib/firestore/orders';
 
 export default function ConfirmationPage() {
-  const { activeCart, totalItems, totalPrice } = useCart();
+  const { activeCart, activeCartId, totalItems, totalPrice, deleteCart } = useCart();
+  const { user } = useAuth();
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleConfirm = async () => {
+    if (!user?.email || !activeCart || activeCart.items.length === 0) return;
     setSubmitting(true);
     try {
-      // TODO: Envoyer la commande via Cloud Function
-      await new Promise((r) => setTimeout(r, 1500));
+      await createOrder({
+        client: user.email,
+        clientEmail: user.email,
+        date: new Date().toLocaleDateString('fr-FR'),
+        lignes: activeCart.items.map((item) => ({
+          ref: item.ref,
+          designation: item.designation,
+          qte: item.qty,
+          prix_unitaire: item.prixUnitaire ?? 0,
+        })),
+        montant_ht: totalPrice,
+        statut: 'En attente',
+      });
+      if (activeCartId) deleteCart(activeCartId);
       setConfirmed(true);
     } catch {
       alert('Erreur lors de la validation. Veuillez réessayer.');
