@@ -6,18 +6,20 @@ import { useAuth } from '@/lib/auth-context';
 import { filterArticlesVisiblesWithStatCats, type Product } from '@/lib/firestore/products';
 import { type StatCategory } from '@/lib/firestore/stat-categories';
 import { type Marque } from '@/lib/firestore/marques';
+import { type Category } from '@/lib/firestore/categories';
 import SearchBar from '@/components/ui/SearchBar';
 import { ProductImage } from '@/components/ui/ProductImage';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-type Tab = 'gamme' | 'marque' | 'search';
+type Tab = 'gamme' | 'marque' | 'theme' | 'search';
 
 interface Props {
   products: Product[];
   statCategories: StatCategory[];
   marques: Marque[];
   productMarques: Record<string, string>;
+  categories: Category[];
 }
 
 function ProductCard({ product, gammeLabel }: { product: Product; gammeLabel?: string }) {
@@ -90,7 +92,7 @@ function MarqueGrid({ marques, onSelect }: {
   );
 }
 
-export default function CatalogueClient({ products, statCategories, marques, productMarques }: Props) {
+export default function CatalogueClient({ products, statCategories, marques, productMarques, categories }: Props) {
   const { profile, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,6 +107,7 @@ export default function CatalogueClient({ products, statCategories, marques, pro
   const [tab, setTab] = useState<Tab>(initialTab);
   const [selectedGamme, setSelectedGamme] = useState<string | null>(null);
   const [selectedMarque, setSelectedMarque] = useState<string | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   const visibleProducts = useMemo(
@@ -122,6 +125,16 @@ export default function CatalogueClient({ products, statCategories, marques, pro
       .filter(({ count }) => count > 0)
       .sort((a, b) => a.cat.designation.localeCompare(b.cat.designation, 'fr'));
   }, [visibleProducts, statCategories]);
+
+  const activeThemes = useMemo(() => {
+    return categories
+      .map((cat) => ({
+        cat,
+        count: visibleProducts.filter((p) => (p.pdt_code_stat || '').startsWith(cat.code_stat)).length,
+      }))
+      .filter(({ count }) => count > 0)
+      .sort((a, b) => a.cat.nom.localeCompare(b.cat.nom, 'fr'));
+  }, [categories, visibleProducts]);
 
   const activeMarques = useMemo(() => {
     return marques
@@ -144,12 +157,21 @@ export default function CatalogueClient({ products, statCategories, marques, pro
     return marques.find((m) => m.id === selectedMarque)?.nom;
   }, [selectedMarque, marques]);
 
+  const themeLabel = useMemo(() => {
+    if (!selectedTheme) return undefined;
+    return categories.find((c) => c.id === selectedTheme)?.nom;
+  }, [selectedTheme, categories]);
+
   const displayedProducts = useMemo(() => {
     if (tab === 'gamme' && selectedGamme) {
       return visibleProducts.filter((p) => (p.pdt_code_stat || '').startsWith(selectedGamme));
     }
     if (tab === 'marque' && selectedMarque) {
       return visibleProducts.filter((p) => productMarques[p.pdt_reference] === selectedMarque);
+    }
+    if (tab === 'theme' && selectedTheme) {
+      const theme = categories.find((c) => c.id === selectedTheme);
+      if (theme) return visibleProducts.filter((p) => (p.pdt_code_stat || '').startsWith(theme.code_stat));
     }
     if (tab === 'search' && search.trim()) {
       const q = search.toLowerCase();
@@ -161,7 +183,7 @@ export default function CatalogueClient({ products, statCategories, marques, pro
       );
     }
     return [];
-  }, [tab, selectedGamme, selectedMarque, search, visibleProducts, productMarques]);
+  }, [tab, selectedGamme, selectedMarque, selectedTheme, search, visibleProducts, productMarques, categories]);
 
   const getGammeForProduct = (p: Product) =>
     statCategories.find((c) => c.niveau === 1 && (p.pdt_code_stat || '').startsWith(c.code))?.designation;
@@ -177,11 +199,8 @@ export default function CatalogueClient({ products, statCategories, marques, pro
   const TABS: { key: Tab; label: string }[] = [
     { key: 'gamme', label: 'Par gamme' },
     { key: 'marque', label: 'Par marque' },
+    { key: 'theme', label: 'Par thème' },
     { key: 'search', label: 'Recherche' },
-  ];
-
-  const DISABLED_TABS = [
-    { label: 'Par thème', soon: true },
   ];
 
   return (
@@ -202,6 +221,7 @@ export default function CatalogueClient({ products, statCategories, marques, pro
               setTab(key);
               setSelectedGamme(null);
               setSelectedMarque(null);
+              setSelectedTheme(null);
               setSearch('');
             }}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
@@ -212,15 +232,6 @@ export default function CatalogueClient({ products, statCategories, marques, pro
           >
             {label}
           </button>
-        ))}
-        {DISABLED_TABS.map(({ label }) => (
-          <span
-            key={label}
-            title="Bientôt disponible"
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-ink-secondary/40 cursor-not-allowed select-none"
-          >
-            {label}
-          </span>
         ))}
       </div>
 
@@ -266,6 +277,45 @@ export default function CatalogueClient({ products, statCategories, marques, pro
                 <ArrowLeft size={16} /> Toutes les marques
               </button>
               <h2 className="text-xl font-bold text-ink mb-5">{marqueLabel}</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {displayedProducts.map((p) => (
+                  <ProductCard key={p.pdt_reference} product={p} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* Par thème */}
+      {tab === 'theme' && (
+        <>
+          {!selectedTheme ? (
+            activeThemes.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {activeThemes.map(({ cat, count }) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedTheme(cat.id)}
+                    className="bg-white border border-border rounded-xl p-5 text-left hover:border-sv-primary/60 hover:shadow-md transition-all group cursor-pointer"
+                  >
+                    <p className="font-bold text-ink group-hover:text-sv-primary transition-colors">{cat.nom}</p>
+                    <p className="text-sm text-ink-secondary mt-1">{count} article{count > 1 ? 's' : ''}</p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-ink-secondary text-sm">Aucun thème disponible pour le moment.</p>
+            )
+          ) : (
+            <>
+              <button
+                onClick={() => setSelectedTheme(null)}
+                className="flex items-center gap-1.5 text-sm text-sv-primary hover:underline mb-5 cursor-pointer"
+              >
+                <ArrowLeft size={16} /> Tous les thèmes
+              </button>
+              <h2 className="text-xl font-bold text-ink mb-5">{themeLabel}</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {displayedProducts.map((p) => (
                   <ProductCard key={p.pdt_reference} product={p} />

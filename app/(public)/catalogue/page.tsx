@@ -4,15 +4,17 @@ import {
   getCachedStatCategories,
   getCachedMarques,
   getCachedProductMarques,
+  getCachedCategories,
 } from '@/lib/server-cache';
 import CatalogueClient from './CatalogueClient';
 
 export default async function CataloguePage() {
-  const [products, statCategories, marques, productMarques] = await Promise.all([
+  const [products, statCategories, marques, productMarques, categories] = await Promise.all([
     getCachedProducts(),
     getCachedStatCategories(),
     getCachedMarques(),
     getCachedProductMarques(),
+    getCachedCategories(),
   ]);
 
   return (
@@ -22,6 +24,7 @@ export default async function CataloguePage() {
         statCategories={statCategories}
         marques={marques}
         productMarques={productMarques}
+        categories={categories}
       />
     </Suspense>
   );
