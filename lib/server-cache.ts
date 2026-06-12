@@ -12,6 +12,7 @@ import {
   type ThemeColors, type HeaderSettings, type FooterSettings,
 } from './firestore/site-settings';
 import { getPageContent } from './firestore/page-content';
+import { getMarques, getProductMarques, type Marque } from './firestore/marques';
 
 // Cache serveur permanent — invalidé uniquement par les fonctions de synchronisation.
 const CACHE_OPTS = (tags: string[]) => ({ revalidate: 86400 as const, tags });
@@ -103,6 +104,18 @@ export const getCachedEvenements = unstable_cache(
   async (): Promise<Evenement[]> => getEvenements(),
   ['evenements'],
   CACHE_OPTS(['evenements'])
+);
+
+export const getCachedMarques = unstable_cache(
+  async (): Promise<Marque[]> => getMarques(),
+  ['marques'],
+  CACHE_OPTS(['marques'])
+);
+
+export const getCachedProductMarques = unstable_cache(
+  async (): Promise<Record<string, string>> => getProductMarques(),
+  ['product-marques'],
+  CACHE_OPTS(['product-marques'])
 );
 
 // ── Clients : store mutable module-level ──────────────────────────────────────

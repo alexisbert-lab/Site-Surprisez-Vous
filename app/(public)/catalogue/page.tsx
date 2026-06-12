@@ -1,21 +1,28 @@
-'use client';
+import { Suspense } from 'react';
+import {
+  getCachedProducts,
+  getCachedStatCategories,
+  getCachedMarques,
+  getCachedProductMarques,
+} from '@/lib/server-cache';
+import CatalogueClient from './CatalogueClient';
 
-import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+export default async function CataloguePage() {
+  const [products, statCategories, marques, productMarques] = await Promise.all([
+    getCachedProducts(),
+    getCachedStatCategories(),
+    getCachedMarques(),
+    getCachedProductMarques(),
+  ]);
 
-export default function CataloguePage() {
-  const { profile, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (loading) return;
-    if (profile?.role === 'pro' || profile?.role === 'admin') {
-      router.replace('/pro/catalogue');
-    } else {
-      router.replace('/connexion');
-    }
-  }, [loading, profile, router]);
-
-  return null;
+  return (
+    <Suspense>
+      <CatalogueClient
+        products={products}
+        statCategories={statCategories}
+        marques={marques}
+        productMarques={productMarques}
+      />
+    </Suspense>
+  );
 }
