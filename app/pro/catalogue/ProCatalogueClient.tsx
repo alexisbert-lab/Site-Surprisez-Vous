@@ -75,13 +75,13 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
     }).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filtrage catalogue restreint — recalculé quand le profil est chargé
-  // Tant que l'auth charge, on ne montre rien (authorizedProducts = []) pour éviter le flash
+  // Affiche tous les produits tant que l'auth charge (catIds inconnus),
+  // puis filtre une fois le profil disponible.
   const authorizedProducts = useMemo(() => {
-    if (authLoading) return [];
-    if (catIds !== undefined && catIds.length > 0)
-      return resolvedProducts.filter((p) => p.cat_ids?.some((id) => catIds.includes(id)));
-    return resolvedProducts;
+    // catIds absent ou vide = client sans restriction → voit tout
+    if (authLoading || !catIds?.length) return resolvedProducts;
+    // Client avec catalogue : UNIQUEMENT les produits appartenant à ses catalogues
+    return resolvedProducts.filter((p) => p.cat_ids?.some((id) => catIds.includes(id)));
   }, [authLoading, catIds, resolvedProducts]);
 
   const items = useMemo(() => buildItems(authorizedProducts, declinationsList), [authorizedProducts, declinationsList]);

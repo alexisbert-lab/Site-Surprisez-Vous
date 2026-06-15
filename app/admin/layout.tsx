@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import AdminSidebar from '@/components/AdminSidebar';
+import AdminNotifBell from '@/components/admin/AdminNotifBell';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, logout } = useAuth();
@@ -47,6 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="text-[15px] sm:text-[17px] font-bold font-[family-name:var(--font-heading)]">Surprisez-Vous — Admin</span>
         </div>
         <div className="text-[13px] text-white/85 flex items-center gap-2 sm:gap-3">
+          <AdminNotifBell />
           <span className="hidden sm:inline">{user.email}</span>
           <button onClick={logout} className="px-2.5 py-1 rounded border border-white/40 text-xs hover:bg-white/10 transition-colors cursor-pointer">
             Déconnexion

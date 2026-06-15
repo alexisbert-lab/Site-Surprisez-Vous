@@ -5,9 +5,10 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
 import { useSiteTheme } from '@/lib/site-theme-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProSearchInput from '@/components/layout/ProSearchInput';
 import { ShoppingCart, Menu, X } from 'lucide-react';
+import ProNotificationBell from '@/components/ui/ProNotificationBell';
 
 interface ProHeaderProps {
   onSearch?: (query: string) => void;
@@ -15,7 +16,11 @@ interface ProHeaderProps {
 
 function CartButton() {
   const { activeCart, totalPrice } = useCart();
-  const nbRefs = activeCart?.items.length ?? 0;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const nbRefs = mounted ? (activeCart?.items.length ?? 0) : 0;
+  const price = mounted ? totalPrice : 0;
+  const cartNom = mounted ? activeCart?.nom : undefined;
 
   return (
     <div className="relative group">
@@ -32,11 +37,11 @@ function CartButton() {
         )}
       </Link>
       <div className="absolute right-0 top-full mt-2 hidden group-hover:flex flex-col gap-1 bg-white border border-border rounded-xl shadow-lg px-4 py-3 w-52 z-50 pointer-events-none">
-        {activeCart?.nom && (
-          <span className="text-xs font-semibold text-ink truncate">{activeCart.nom}</span>
+        {cartNom && (
+          <span className="text-xs font-semibold text-ink truncate">{cartNom}</span>
         )}
         <span className="text-xs text-ink-secondary">{nbRefs} référence{nbRefs !== 1 ? 's' : ''}</span>
-        <span className="text-sm font-bold text-sv-primary">{totalPrice.toFixed(2)} € HT</span>
+        <span className="text-sm font-bold text-sv-primary">{price.toFixed(2)} € HT</span>
       </div>
     </div>
   );
@@ -64,7 +69,7 @@ export default function ProHeader({ onSearch }: ProHeaderProps) {
       {/* Main header */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-5 flex items-center gap-3 sm:gap-5 h-14">
         {/* Logo */}
-        <Link href="/pro/dashboard" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity">
           {header.logo_image_url ? (
             <Image 
               src={header.logo_image_url} 
@@ -117,9 +122,10 @@ export default function ProHeader({ onSearch }: ProHeaderProps) {
           >
             Mon Espace
           </Link>
+          <ProNotificationBell />
           <CartButton />
-          <button 
-            onClick={logout} 
+          <button
+            onClick={logout}
             className="ml-4 px-3 py-1.5 border text-sm text-ink-secondary rounded-lg hover:bg-sv-grey-light transition-colors cursor-pointer"
             style={{ borderColor: colors.sv_primary + '33' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = colors.sv_primary)}

@@ -1,22 +1,19 @@
 import { Suspense } from 'react';
+import ProCatalogueClient from './ProCatalogueClient';
 import {
   getCachedProducts,
   getCachedDeclinations,
   getCachedStockSettings,
   getCachedStatCategories,
 } from '@/lib/server-cache';
-import { filterArticlesVisiblesWithStatCats } from '@/lib/firestore/products';
-import ProCatalogueClient from './ProCatalogueClient';
 
 export default async function ProCataloguePage() {
-  const [allProducts, declinations, stockSettings, statCategories] = await Promise.all([
+  const [products, declinations, stockSettings, statCategories] = await Promise.all([
     getCachedProducts(),
     getCachedDeclinations(),
     getCachedStockSettings(),
     getCachedStatCategories(),
   ]);
-
-  const products = filterArticlesVisiblesWithStatCats(allProducts, statCategories);
 
   return (
     <Suspense>

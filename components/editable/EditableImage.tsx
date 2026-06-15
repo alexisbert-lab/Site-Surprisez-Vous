@@ -23,7 +23,7 @@ export default function EditableImage({ page, id, src, alt, className, fallback 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => { if (!isEditMode) setShowInput(false); }, [isEditMode]);
 
-  const iframeSaved = mounted ? getIframeContent(page, id) : undefined;
+  const iframeSaved = getIframeContent(page, id);
   const editSaved   = mounted && !isIframeMode ? getContent(page, id) : undefined;
   const currentSrc  = iframeSaved ?? editSaved ?? src;
 

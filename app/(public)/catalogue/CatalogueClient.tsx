@@ -1,151 +1,393 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { getStatCategory, isEnRupture, isStockFaible, type Product } from '@/lib/firestore/products';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
+import { filterArticlesVisiblesWithStatCats, type PublicProduct } from '@/lib/firestore/products';
+import { type StatCategory } from '@/lib/firestore/stat-categories';
+import { type Marque } from '@/lib/firestore/marques';
+import { type Category } from '@/lib/firestore/categories';
 import SearchBar from '@/components/ui/SearchBar';
-import Modal, { ModalTitle } from '@/components/ui/Modal';
+import { ProductImage } from '@/components/ui/ProductImage';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
-export default function CatalogueClient({ initialProducts }: { initialProducts: Product[] }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCat, setFilterCat] = useState('');
-  const [filterStat, setFilterStat] = useState('');
-  const [modalProduct, setModalProduct] = useState<Product | null>(null);
+type Tab = 'gamme' | 'marque' | 'theme' | 'search';
 
-  const categories = useMemo(
-    () => [...new Set(initialProducts.map((p) => getStatCategory(p.pdt_code_stat)).filter(Boolean))].sort(),
-    [initialProducts]
+interface Props {
+  products: PublicProduct[];
+  statCategories: StatCategory[];
+  marques: Marque[];
+  productMarques: Record<string, string>;
+  categories: Category[];
+}
+
+function ProductCard({ product, gammeLabel }: { product: PublicProduct; gammeLabel?: string }) {
+  return (
+    <div className="bg-white border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+      <div className="aspect-square bg-sv-grey-light flex items-center justify-center overflow-hidden">
+        <ProductImage imageRef={product.pdt_reference} className="w-full h-full object-contain p-2" />
+      </div>
+      <div className="p-3 flex flex-col gap-1">
+        {gammeLabel && (
+          <span className="text-xs font-semibold text-sv-primary bg-sv-primary-light px-2 py-0.5 rounded-full w-fit">
+            {gammeLabel}
+          </span>
+        )}
+        <p className="text-xs text-ink-secondary font-mono">{product.pdt_reference}</p>
+        <p className="text-sm font-semibold text-ink leading-tight line-clamp-2">{product.pdt_designation}</p>
+      </div>
+    </div>
   );
+}
 
-  const statCodes = useMemo(() => {
-    const source = filterCat ? initialProducts.filter((p) => getStatCategory(p.pdt_code_stat) === filterCat) : initialProducts;
-    return [...new Set(source.map((p) => p.pdt_code_stat).filter(Boolean))].sort();
-  }, [initialProducts, filterCat]);
+const BATCH = 24;
 
-  const filtered = useMemo(() => {
-    let result = initialProducts;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((p) =>
-        p.pdt_reference?.toLowerCase().includes(q) ||
-        p.pdt_designation?.toLowerCase().includes(q) ||
-        p.pdt_ean?.toLowerCase().includes(q) ||
-        p.pdt_code_stat?.toLowerCase().includes(q)
-      );
-    }
-    if (filterCat) result = result.filter((p) => getStatCategory(p.pdt_code_stat) === filterCat);
-    if (filterStat) result = result.filter((p) => p.pdt_code_stat === filterStat);
-    return result;
-  }, [initialProducts, searchQuery, filterCat, filterStat]);
+/** Grille produits à révélation progressive (infinite scroll) — évite de monter des centaines de cartes d'un coup. */
+function ProductGrid({ products, gammeOf }: {
+  products: PublicProduct[];
+  gammeOf?: (p: PublicProduct) => string | undefined;
+}) {
+  const [limit, setLimit] = useState(BATCH);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const labels: Record<string, string> = {
-    pdt_reference: 'Référence', pdt_designation: 'Désignation', pdt_ean: 'EAN',
-    pdt_code_stat: 'Code stat',
-  };
+  useEffect(() => { setLimit(BATCH); }, [products]);
+
+  useEffect(() => {
+    if (limit >= products.length) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setLimit((l) => Math.min(l + BATCH, products.length)); },
+      { rootMargin: '600px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [limit, products.length]);
 
   return (
     <>
-      <h1 className="text-xl font-bold mb-5 text-sv-primary font-[family-name:var(--font-heading)]">Catalogue</h1>
-
-      <SearchBar
-        placeholder="Rechercher par référence, désignation, EAN..."
-        onSearch={setSearchQuery}
-        className="mb-5"
-      />
-
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-wrap mb-4">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-semibold text-ink-secondary whitespace-nowrap">Catégorie :</label>
-          <select
-            value={filterCat}
-            onChange={(e) => { setFilterCat(e.target.value); setFilterStat(''); }}
-            className="flex-1 px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sv-primary/30"
-          >
-            <option value="">-- Toutes --</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-semibold text-ink-secondary whitespace-nowrap">Code stat :</label>
-          <select
-            value={filterStat}
-            onChange={(e) => setFilterStat(e.target.value)}
-            className="flex-1 px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sv-primary/30"
-          >
-            <option value="">-- Tous --</option>
-            {statCodes.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center gap-3">
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-xs text-sv-orange hover:underline cursor-pointer"
-            >
-              Effacer la recherche
-            </button>
-          )}
-          <span className="text-sm text-ink-secondary">{filtered.length} article(s)</span>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {products.slice(0, limit).map((p) => (
+          <ProductCard key={p.pdt_reference} product={p} gammeLabel={gammeOf?.(p)} />
+        ))}
       </div>
-
-      <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-sv-grey-light">
-              <th className="text-left px-3 py-2.5 font-semibold text-ink-secondary border-b-2 border-border">Référence</th>
-              <th className="text-left px-3 py-2.5 font-semibold text-ink-secondary border-b-2 border-border">Désignation</th>
-              <th className="text-left px-3 py-2.5 font-semibold text-ink-secondary border-b-2 border-border">EAN</th>
-              <th className="text-left px-3 py-2.5 font-semibold text-ink-secondary border-b-2 border-border">Code stat</th>
-              <th className="text-left px-3 py-2.5 font-semibold text-ink-secondary border-b-2 border-border">Stock</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr><td colSpan={5} className="px-3 py-8 text-center text-ink-secondary italic">Aucun article trouvé.</td></tr>
-            ) : (
-              filtered.map((pdt, i) => {
-                const rupture = isEnRupture(pdt);
-                const faible = isStockFaible(pdt);
-                return (
-                  <tr key={pdt.pdt_reference ?? i} onClick={() => setModalProduct(pdt)} className={`cursor-pointer border-b border-border/50 transition-colors ${rupture ? 'bg-red-50/50' : 'hover:bg-sv-primary-light/50'}`}>
-                    <td className="px-3 py-2.5 font-semibold">{pdt.pdt_reference}</td>
-                    <td className="px-3 py-2.5">{pdt.pdt_designation}</td>
-                    <td className="px-3 py-2.5 text-ink-secondary">{pdt.pdt_ean || '\u2014'}</td>
-                    <td className="px-3 py-2.5">{pdt.pdt_code_stat || ''}</td>
-                    <td className="px-3 py-2.5">
-                      {rupture ? <span className="text-red-600 font-bold text-xs">Rupture</span>
-                        : faible ? <span className="text-orange-600 font-bold text-xs">Stock faible</span>
-                        : <span className="text-emerald-600 font-bold text-xs">En stock</span>}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <Modal open={!!modalProduct} onClose={() => setModalProduct(null)}>
-        {modalProduct && (
-          <>
-            <ModalTitle>{modalProduct.pdt_designation}</ModalTitle>
-            <table className="text-sm w-full">
-              <tbody>
-                {Object.entries(labels).map(([key, label]) => (
-                  <tr key={key}>
-                    <td className="py-1.5 pr-4 text-ink-secondary font-semibold whitespace-nowrap">{label}</td>
-                    <td className="py-1.5">{String((modalProduct as unknown as Record<string, unknown>)[key] ?? '\u2014')}</td>
-                  </tr>
-                ))}
-                <tr>
-                  <td className="py-1.5 pr-4 text-ink-secondary font-semibold whitespace-nowrap">Catégorie</td>
-                  <td className="py-1.5">{getStatCategory(modalProduct.pdt_code_stat)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </>
-        )}
-      </Modal>
+      {limit < products.length && <div ref={sentinelRef} className="h-10" />}
     </>
+  );
+}
+
+function GammeGrid({ gammes, onSelect }: {
+  gammes: { cat: StatCategory; count: number }[];
+  onSelect: (code: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      {gammes.map(({ cat, count }) => (
+        <button
+          key={cat.code}
+          onClick={() => onSelect(cat.code)}
+          className="bg-white border border-border rounded-xl p-5 text-left hover:border-sv-primary/60 hover:shadow-md transition-all group cursor-pointer"
+        >
+          <p className="font-bold text-ink group-hover:text-sv-primary transition-colors">{cat.designation}</p>
+          <p className="text-sm text-ink-secondary mt-1">{count} article{count > 1 ? 's' : ''}</p>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MarqueGrid({ marques, onSelect }: {
+  marques: { marque: Marque; count: number }[];
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      {marques.map(({ marque, count }) => (
+        <button
+          key={marque.id}
+          onClick={() => onSelect(marque.id)}
+          className="bg-white border border-border rounded-xl p-5 text-left hover:border-sv-primary/60 hover:shadow-md transition-all group cursor-pointer flex flex-col items-center gap-2"
+        >
+          {marque.logo_url ? (
+            <img src={marque.logo_url} alt={marque.nom} className="h-12 w-auto object-contain" />
+          ) : (
+            <div className="h-12 w-full flex items-center justify-center">
+              <span className="text-lg font-extrabold text-sv-primary group-hover:text-sv-primary-dark transition-colors">
+                {marque.nom}
+              </span>
+            </div>
+          )}
+          {marque.logo_url && (
+            <p className="text-sm font-semibold text-ink text-center">{marque.nom}</p>
+          )}
+          <p className="text-xs text-ink-secondary">{count} article{count > 1 ? 's' : ''}</p>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function CatalogueClient({ products, statCategories, marques, productMarques, categories }: Props) {
+  const { profile, loading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (!loading && (profile?.role === 'pro' || profile?.role === 'admin')) {
+      router.replace('/pro/catalogue');
+    }
+  }, [loading, profile, router]);
+
+  const initialTab = (searchParams.get('tab') as Tab | null) ?? 'gamme';
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [selectedGamme, setSelectedGamme] = useState<string | null>(null);
+  const [selectedMarque, setSelectedMarque] = useState<string | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const visibleProducts = useMemo(
+    () => filterArticlesVisiblesWithStatCats(products, statCategories),
+    [products, statCategories]
+  );
+
+  const gammes = useMemo(() => {
+    return statCategories
+      .filter((c) => c.niveau === 1 && c.actif)
+      .map((cat) => ({
+        cat,
+        count: visibleProducts.filter((p) => (p.pdt_code_stat || '').startsWith(cat.code)).length,
+      }))
+      .filter(({ count }) => count > 0)
+      .sort((a, b) => a.cat.designation.localeCompare(b.cat.designation, 'fr'));
+  }, [visibleProducts, statCategories]);
+
+  const activeThemes = useMemo(() => {
+    return categories
+      .map((cat) => ({
+        cat,
+        count: visibleProducts.filter((p) => (p.pdt_code_stat || '').startsWith(cat.code_stat)).length,
+      }))
+      .filter(({ count }) => count > 0)
+      .sort((a, b) => a.cat.nom.localeCompare(b.cat.nom, 'fr'));
+  }, [categories, visibleProducts]);
+
+  const activeMarques = useMemo(() => {
+    return marques
+      .filter((m) => m.actif)
+      .map((marque) => ({
+        marque,
+        count: visibleProducts.filter((p) => productMarques[p.pdt_reference] === marque.id).length,
+      }))
+      .filter(({ count }) => count > 0)
+      .sort((a, b) => a.marque.nom.localeCompare(b.marque.nom, 'fr'));
+  }, [marques, visibleProducts, productMarques]);
+
+  const gammeLabel = useMemo(() => {
+    if (!selectedGamme) return undefined;
+    return statCategories.find((c) => c.code === selectedGamme)?.designation;
+  }, [selectedGamme, statCategories]);
+
+  const marqueLabel = useMemo(() => {
+    if (!selectedMarque) return undefined;
+    return marques.find((m) => m.id === selectedMarque)?.nom;
+  }, [selectedMarque, marques]);
+
+  const themeLabel = useMemo(() => {
+    if (!selectedTheme) return undefined;
+    return categories.find((c) => c.id === selectedTheme)?.nom;
+  }, [selectedTheme, categories]);
+
+  const displayedProducts = useMemo(() => {
+    if (tab === 'gamme' && selectedGamme) {
+      return visibleProducts.filter((p) => (p.pdt_code_stat || '').startsWith(selectedGamme));
+    }
+    if (tab === 'marque' && selectedMarque) {
+      return visibleProducts.filter((p) => productMarques[p.pdt_reference] === selectedMarque);
+    }
+    if (tab === 'theme' && selectedTheme) {
+      const theme = categories.find((c) => c.id === selectedTheme);
+      if (theme) return visibleProducts.filter((p) => (p.pdt_code_stat || '').startsWith(theme.code_stat));
+    }
+    if (tab === 'search' && search.trim()) {
+      const q = search.toLowerCase();
+      return visibleProducts.filter(
+        (p) =>
+          p.pdt_reference?.toLowerCase().includes(q) ||
+          p.pdt_designation?.toLowerCase().includes(q) ||
+          p.pdt_ean?.toLowerCase().includes(q)
+      );
+    }
+    return [];
+  }, [tab, selectedGamme, selectedMarque, selectedTheme, search, visibleProducts, productMarques, categories]);
+
+  const getGammeForProduct = (p: PublicProduct) =>
+    statCategories.find((c) => c.niveau === 1 && (p.pdt_code_stat || '').startsWith(c.code))?.designation;
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-12 text-center text-ink-secondary text-sm">
+        Chargement…
+      </div>
+    );
+  }
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'gamme', label: 'Par gamme' },
+    { key: 'marque', label: 'Par marque' },
+    { key: 'theme', label: 'Par thème' },
+    { key: 'search', label: 'Recherche' },
+  ];
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-10">
+      <h1 className="text-3xl font-extrabold text-sv-primary mb-2 font-[family-name:var(--font-heading)]">
+        Notre Catalogue
+      </h1>
+      <p className="text-ink-secondary mb-8">
+        Découvrez nos articles par gamme ou par marque.
+      </p>
+
+      {/* Tab nav */}
+      <div className="flex gap-1 bg-sv-grey-light rounded-xl p-1 w-fit mb-8">
+        {TABS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => {
+              setTab(key);
+              setSelectedGamme(null);
+              setSelectedMarque(null);
+              setSelectedTheme(null);
+              setSearch('');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+              tab === key
+                ? 'bg-white text-sv-primary shadow-sm'
+                : 'text-ink-secondary hover:text-ink'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Par gamme */}
+      {tab === 'gamme' && (
+        <>
+          {!selectedGamme ? (
+            <GammeGrid gammes={gammes} onSelect={setSelectedGamme} />
+          ) : (
+            <>
+              <button
+                onClick={() => setSelectedGamme(null)}
+                className="flex items-center gap-1.5 text-sm text-sv-primary hover:underline mb-5 cursor-pointer"
+              >
+                <ArrowLeft size={16} /> Toutes les gammes
+              </button>
+              <h2 className="text-xl font-bold text-ink mb-5">{gammeLabel}</h2>
+              <ProductGrid products={displayedProducts} />
+            </>
+          )}
+        </>
+      )}
+
+      {/* Par marque */}
+      {tab === 'marque' && (
+        <>
+          {!selectedMarque ? (
+            activeMarques.length > 0 ? (
+              <MarqueGrid marques={activeMarques} onSelect={setSelectedMarque} />
+            ) : (
+              <p className="text-ink-secondary text-sm">Aucune marque disponible pour le moment.</p>
+            )
+          ) : (
+            <>
+              <button
+                onClick={() => setSelectedMarque(null)}
+                className="flex items-center gap-1.5 text-sm text-sv-primary hover:underline mb-5 cursor-pointer"
+              >
+                <ArrowLeft size={16} /> Toutes les marques
+              </button>
+              <h2 className="text-xl font-bold text-ink mb-5">{marqueLabel}</h2>
+              <ProductGrid products={displayedProducts} />
+            </>
+          )}
+        </>
+      )}
+
+      {/* Par thème */}
+      {tab === 'theme' && (
+        <>
+          {!selectedTheme ? (
+            activeThemes.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {activeThemes.map(({ cat, count }) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedTheme(cat.id)}
+                    className="bg-white border border-border rounded-xl p-5 text-left hover:border-sv-primary/60 hover:shadow-md transition-all group cursor-pointer"
+                  >
+                    <p className="font-bold text-ink group-hover:text-sv-primary transition-colors">{cat.nom}</p>
+                    <p className="text-sm text-ink-secondary mt-1">{count} article{count > 1 ? 's' : ''}</p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-ink-secondary text-sm">Aucun thème disponible pour le moment.</p>
+            )
+          ) : (
+            <>
+              <button
+                onClick={() => setSelectedTheme(null)}
+                className="flex items-center gap-1.5 text-sm text-sv-primary hover:underline mb-5 cursor-pointer"
+              >
+                <ArrowLeft size={16} /> Tous les thèmes
+              </button>
+              <h2 className="text-xl font-bold text-ink mb-5">{themeLabel}</h2>
+              <ProductGrid products={displayedProducts} />
+            </>
+          )}
+        </>
+      )}
+
+      {/* Recherche */}
+      {tab === 'search' && (
+        <>
+          <SearchBar
+            placeholder="Référence, désignation, EAN…"
+            onSearch={setSearch}
+            className="mb-6 max-w-lg"
+          />
+          {search.trim() ? (
+            <>
+              <p className="text-sm text-ink-secondary mb-4">{displayedProducts.length} résultat{displayedProducts.length !== 1 ? 's' : ''}</p>
+              {displayedProducts.length > 0 ? (
+                <ProductGrid products={displayedProducts} gammeOf={getGammeForProduct} />
+              ) : (
+                <p className="text-ink-secondary text-sm italic">Aucun article trouvé.</p>
+              )}
+            </>
+          ) : (
+            <p className="text-ink-secondary text-sm">Saisissez au moins un mot-clé pour rechercher.</p>
+          )}
+        </>
+      )}
+
+      {/* CTA espace pro */}
+      {!profile && (
+        <div className="mt-16 bg-sv-primary-light rounded-2xl p-8 text-center">
+          <p className="text-sv-primary font-semibold text-lg mb-2">Vous êtes professionnel ?</p>
+          <p className="text-ink-secondary text-sm mb-5">
+            Accédez à l'ensemble du catalogue avec vos tarifs personnalisés, gérez vos commandes et paniers.
+          </p>
+          <Link
+            href="/pro/connexion"
+            className="inline-block bg-sv-primary text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-sv-primary-dark transition-colors"
+          >
+            Accéder à l'espace pro
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }

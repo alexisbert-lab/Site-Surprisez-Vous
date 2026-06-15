@@ -11,8 +11,12 @@ import { SectionProduits } from '@/components/home/SectionProduits';
 import { fireConfetti } from '@/lib/confetti';
 import type { Product } from '@/lib/firestore/products';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
 export default function HomePage() {
+  const { profile, loading } = useAuth();
+  const isPro = !loading && (profile?.role === 'pro' || profile?.role === 'admin');
+
   const [nouveautes, setNouveautes] = useState<Product[]>([]);
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
 
@@ -21,6 +25,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!isPro) return;
     if (new URLSearchParams(window.location.search).get('_editmode') === '1') return;
     let cancelled = false;
     Promise.all([
@@ -39,17 +44,28 @@ export default function HomePage() {
       setBestsellers(pickProducts(parseIds(homeContent.bestsellers_products)));
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [isPro]);
+
+  if (isPro) {
+    return (
+      <main>
+        <SectionUnivers />
+        <SectionProduits title="Découvrez les nouveautés" titleId="produits_nouveautes_title" badge="Nouveauté" viewAllId="produits_nouveautes_viewall" sectionId="nouveautes" products={nouveautes} />
+        <SectionProduits title="Nos best-sellers" titleId="produits_bestsellers_title" badge="Best-seller" viewAllId="produits_bestsellers_viewall" sectionId="bestsellers" products={bestsellers} />
+        <SectionDecouverte />
+        <SectionInstagram />
+        <SectionMarquee />
+      </main>
+    );
+  }
 
   return (
     <main>
       <HeroImmersive />
       <SectionKPIs />
-      <SectionProduits title="Découvrez les nouveautés" titleId="produits_nouveautes_title" badge="Nouveauté" viewAllId="produits_nouveautes_viewall" sectionId="nouveautes" products={nouveautes} />
       <SectionUnivers />
       <SectionDecouverte />
       <SectionInstagram />
-      <SectionProduits title="Nos best-sellers" titleId="produits_bestsellers_title" badge="Best-seller" viewAllId="produits_bestsellers_viewall" sectionId="bestsellers" products={bestsellers} />
       <SectionMarquee />
     </main>
   );

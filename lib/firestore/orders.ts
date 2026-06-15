@@ -5,11 +5,13 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase';
+import { pushOrderNotif } from '../rtdb/notifications';
 
 const db = () => getFirebaseDb();
 
@@ -38,14 +40,37 @@ export async function getOrders(): Promise<Order[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
 }
 
-export async function updateOrderStatus(id: string, statut: Order['statut']): Promise<void> {
+export async function getOrdersByEmail(email: string): Promise<Order[]> {
+  const q = query(
+    collection(db(), 'orders'),
+    where('clientEmail', '==', email),
+    orderBy('date', 'desc'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
+}
+
+export async function updateOrderStatus(
+  id: string,
+  statut: Order['statut'],
+  clientEmail?: string,
+): Promise<void> {
   await updateDoc(doc(db(), 'orders', id), { statut });
+  if (clientEmail) {
+    const { pushClientOrderNotif } = await import('@/lib/rtdb/client-notifications');
+    pushClientOrderNotif(clientEmail, id, statut);
+  }
 }
 
 export async function createOrder(order: Omit<Order, 'id'>): Promise<string> {
   const ref = doc(collection(db(), 'orders'));
   await setDoc(ref, order);
+  pushOrderNotif(ref.id, `Nouvelle commande — ${order.client} (${order.montant_ht.toFixed(2)} € HT)`);
   return ref.id;
+}
+
+export async function deleteOrder(id: string): Promise<void> {
+  await deleteDoc(doc(db(), 'orders', id));
 }
 
 // ===== Collection "commandes" — commandes ERP =====

@@ -1,6 +1,6 @@
 const functions = require("firebase-functions");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentWritten, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
@@ -821,6 +821,7 @@ async function syncCommandesCsv(rows) {
   }
 
   if (ops % 450 !== 0) await batch.commit();
+  await invalidateCF("commandes");
   return { nouveau, modifie, inchange };
 }
 
@@ -1122,13 +1123,27 @@ async function stepSyncClientCatalogues(fichiers) {
   return { clients_lies: clientCatMap.size, modifie, inchange };
 }
 
+/** Extrait le cat_id depuis le nom de fichier (catalogue_camphes_joyeuses_fee.csv → désignation normalisée → cat_id). */
+async function catIdFromFilename(fileName) {
+  const slug = fileName.toLowerCase().replace(/^catalogue_/, "").replace(/\.csv$/, "");
+  const designation = slug.replace(/_/g, " ").trim();
+  const snap = await db.collection("catalogues").get();
+  for (const doc of snap.docs) {
+    const d = (doc.data().cat_designation || "").toLowerCase().trim();
+    if (d === designation) return doc.data().cat_id;
+  }
+  return null;
+}
+
 async function stepSyncOneCatalogueFile(fichiers, fileName) {
   const f = fichiers.find((f) => f.name.toLowerCase() === fileName.toLowerCase());
   if (!f) throw new Error(`Fichier ${fileName} introuvable dans le dossier catalogue.`);
   const rows = await lireCsvDrive(f.id);
+  // Résoudre cat_id : depuis la colonne clp_cat_id (ancien format) ou depuis le nom du fichier (nouveau format)
+  const fallbackCatId = await catIdFromFilename(f.name);
   const pdtCatIds = new Map();
   for (const row of rows) {
-    const catId = parseInt(row.clp_cat_id);
+    const catId = parseInt(row.clp_cat_id) || fallbackCatId;
     const ref = (row.pdt_reference || "").trim();
     if (!catId || !ref) continue;
     if (!pdtCatIds.has(ref)) pdtCatIds.set(ref, new Set());
@@ -1156,11 +1171,21 @@ async function stepSyncAllCatalogueFiles(fichiers) {
   const catalogueItems = fichiers.filter((f) =>
     f.name.toLowerCase().startsWith("catalogue_") && f.name.toLowerCase().endsWith(".csv")
   );
+  // Pré-charger le mapping désignation normalisée → cat_id pour tous les catalogues
+  const catSnap = await db.collection("catalogues").get();
+  const designationToCatId = new Map();
+  for (const doc of catSnap.docs) {
+    const d = (doc.data().cat_designation || "").toLowerCase().trim();
+    designationToCatId.set(d, doc.data().cat_id);
+  }
   const pdtCatIds = new Map();
   for (const fichier of catalogueItems) {
+    const slug = fichier.name.toLowerCase().replace(/^catalogue_/, "").replace(/\.csv$/, "");
+    const designation = slug.replace(/_/g, " ").trim();
+    const fallbackCatId = designationToCatId.get(designation) ?? null;
     const rows = await lireCsvDrive(fichier.id);
     for (const row of rows) {
-      const catId = parseInt(row.clp_cat_id);
+      const catId = parseInt(row.clp_cat_id) || fallbackCatId;
       const ref = (row.pdt_reference || "").trim();
       if (!catId || !ref) continue;
       if (!pdtCatIds.has(ref)) pdtCatIds.set(ref, new Set());
@@ -1521,6 +1546,20 @@ exports.instagramFeed = functions.https.onRequest(async (req, res) => {
 
 // Rafraîchit automatiquement le token Instagram tous les 30 jours.
 // Le token longue durée dure 60 j — on renouvelle à mi-chemin pour ne jamais expirer.
+// ── Warmup toutes les 5 min : maintient Next.js + cacheData chauds ───────────
+exports.warmupCache = onSchedule(
+  { schedule: "*/5 * * * *", timeZone: "Europe/Paris" },
+  async () => {
+    if (!NEXTJS_BASE_URL) return;
+    try {
+      await fetch(`${NEXTJS_BASE_URL}/api/warmup${CACHE_SECRET ? `?secret=${CACHE_SECRET}` : ""}`);
+      console.log("[warmup] OK");
+    } catch (e) {
+      console.warn("[warmup] Erreur :", e.message);
+    }
+  }
+);
+
 exports.autoRefreshInstagramToken = onSchedule("0 0 1 * *", async () => {
   const creds = await getIgCredentials();
   if (!creds) {
@@ -1543,5 +1582,60 @@ exports.autoRefreshInstagramToken = onSchedule("0 0 1 * *", async () => {
     console.log("[autoRefreshInstagramToken] Token rafraîchi avec succès.");
   } catch (err) {
     console.error("[autoRefreshInstagramToken] Échec :", err.message);
+  }
+});
+
+// ===== Notifications RTDB client — changement de statut commande =====
+const STATUT_LABELS_NOTIF = {
+  "En attente": "En attente de validation",
+  "Validee":    "Validée ✓",
+  "Expediee":   "Expédiée 📦",
+  "Livree":     "Livrée 🎉",
+  "Annulee":    "Annulée",
+};
+
+exports.onOrderStatusChange = onDocumentUpdated("orders/{orderId}", async (event) => {
+  const before = event.data.before.data();
+  const after  = event.data.after.data();
+  if (before.statut === after.statut) return null;
+
+  const clientEmail = (after.clientEmail || after.client || "").trim();
+  if (!clientEmail) return null;
+
+  const clientSnap = await db.collection("clients")
+    .where("email", "==", clientEmail)
+    .limit(1)
+    .get();
+  if (clientSnap.empty) return null;
+
+  const uid = clientSnap.docs[0].data().uid;
+  if (!uid) return null;
+
+  await admin.database()
+    .ref(`notifications/clients/${uid}`)
+    .push({
+      orderId: event.params.orderId,
+      label:   STATUT_LABELS_NOTIF[after.statut] ?? after.statut,
+      statut:  after.statut,
+      at:      admin.database.ServerValue.TIMESTAMP,
+      read:    false,
+    });
+
+  return null;
+});
+
+// ===== Custom claims admin =====
+// Pose auth.token.admin = true dès que users/{uid}.role === 'admin'
+// Utilisé par les règles RTDB pour restreindre /notifications/admin
+exports.setAdminClaim = onDocumentWritten("users/{uid}", async (event) => {
+  const uid = event.params.uid;
+  const after = event.data?.after?.data();
+
+  const isAdmin = after?.role === "admin";
+  try {
+    await admin.auth().setCustomUserClaims(uid, { admin: isAdmin });
+    console.log(`[setAdminClaim] uid=${uid} admin=${isAdmin}`);
+  } catch (err) {
+    console.error(`[setAdminClaim] Erreur uid=${uid}:`, err.message);
   }
 });

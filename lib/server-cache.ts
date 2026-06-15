@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { getProducts, type Product } from './firestore/products';
+import { getProducts, toPublicProduct, type Product, type PublicProduct } from './firestore/products';
 import { getCategories, getDeclinations, type Category, type Declination } from './firestore/categories';
 import { getEvenements, type Evenement } from './firestore/evenements';
 import { getStatCategories, type StatCategory } from './firestore/stat-categories';
@@ -7,63 +7,86 @@ import { getStockSettings, type StockSettings } from './firestore/settings';
 import { getTarifLines, type TarifLine } from './firestore/tarifs';
 import { getClients, type Client } from './firestore/clients';
 import { getCatalogues, type Catalogue } from './firestore/catalogues';
+import type { RevendeurResult } from './firestore/revendeurs';
 import {
   getThemeColors, getHeaderSettings, getFooterSettings,
   type ThemeColors, type HeaderSettings, type FooterSettings,
 } from './firestore/site-settings';
 import { getPageContent } from './firestore/page-content';
+import { getMarques, getProductMarques, type Marque } from './firestore/marques';
 
 // Cache serveur permanent — invalidé uniquement par les fonctions de synchronisation.
 const CACHE_OPTS = (tags: string[]) => ({ revalidate: 86400 as const, tags });
 
-// ── Products : store mutable module-level (supporte le patch partiel) ──────────
-let _products: Product[] | null = null;
+// globalThis survit au HMR Next.js en dev (contrairement aux variables de module).
+const g = globalThis as typeof globalThis & {
+  _sv_products?: Product[] | null;
+  _sv_statCategories?: StatCategory[] | null;
+};
 
+// Utilise le Data Cache de Next.js (persist entre invocations Vercel, tag-invalidable).
+async function fetchFromCF<T>(path: string): Promise<T | null> {
+  const base = process.env.NEXT_PUBLIC_CACHE_CF_URL;
+  if (!base) return null;
+  try {
+    const res = await fetch(`${base}/data/${path}`, {
+      next: { revalidate: 300, tags: [path] },
+    });
+    if (res.ok) return res.json() as Promise<T>;
+  } catch {}
+  return null;
+}
+
+// ── Products : store mutable module-level (supporte le patch partiel) ──────────
 export async function getCachedProducts(): Promise<Product[]> {
   if (process.env.NEXT_PHASE === 'phase-production-build') return [];
-  if (_products !== null) return _products;
-  _products = await getProducts();
-  return _products;
+  if (g._sv_products != null) return g._sv_products;
+  g._sv_products = (await fetchFromCF<Product[]>('products')) ?? await getProducts();
+  return g._sv_products;
+}
+
+/** Version allégée pour le catalogue public : seulement les champs affichés, sans prix ni stock. */
+export async function getCachedPublicProducts(): Promise<PublicProduct[]> {
+  const all = await getCachedProducts();
+  return all.map(toPublicProduct);
 }
 
 /** Met à jour uniquement les produits passés en paramètre (merge par pdt_reference). */
 export function patchCachedProducts(patches: (Partial<Product> & { pdt_reference: string })[]): void {
-  if (_products === null || patches.length === 0) return;
-  const map = new Map(_products.map((p) => [p.pdt_reference, p]));
+  if (g._sv_products == null || patches.length === 0) return;
+  const map = new Map(g._sv_products.map((p) => [p.pdt_reference, p]));
   for (const patch of patches) {
     const existing = map.get(patch.pdt_reference);
     map.set(patch.pdt_reference, existing ? { ...existing, ...patch } : (patch as Product));
   }
-  _products = Array.from(map.values());
+  g._sv_products = Array.from(map.values());
 }
 
 /** Force le rechargement depuis Firestore au prochain appel. */
 export function invalidateCachedProducts(): void {
-  _products = null;
+  g._sv_products = null;
 }
 
 // ── Stat-categories : store mutable module-level ───────────────────────────────
-let _statCategories: StatCategory[] | null = null;
-
 export async function getCachedStatCategories(): Promise<StatCategory[]> {
   if (process.env.NEXT_PHASE === 'phase-production-build') return [];
-  if (_statCategories !== null) return _statCategories;
-  _statCategories = await getStatCategories();
-  return _statCategories;
+  if (g._sv_statCategories != null) return g._sv_statCategories;
+  g._sv_statCategories = (await fetchFromCF<StatCategory[]>('stat-categories')) ?? await getStatCategories();
+  return g._sv_statCategories;
 }
 
 export function patchCachedStatCategories(patches: (Partial<StatCategory> & { code: string })[]): void {
-  if (_statCategories === null || patches.length === 0) return;
-  const map = new Map(_statCategories.map((s) => [s.code, s]));
+  if (g._sv_statCategories == null || patches.length === 0) return;
+  const map = new Map(g._sv_statCategories.map((s) => [s.code, s]));
   for (const patch of patches) {
     const existing = map.get(patch.code);
     map.set(patch.code, existing ? { ...existing, ...patch } : (patch as StatCategory));
   }
-  _statCategories = Array.from(map.values());
+  g._sv_statCategories = Array.from(map.values());
 }
 
 export function invalidateCachedStatCategories(): void {
-  _statCategories = null;
+  g._sv_statCategories = null;
 }
 
 export const getCachedDeclinations = unstable_cache(
@@ -90,6 +113,18 @@ export const getCachedEvenements = unstable_cache(
   CACHE_OPTS(['evenements'])
 );
 
+export const getCachedMarques = unstable_cache(
+  async (): Promise<Marque[]> => getMarques(),
+  ['marques'],
+  CACHE_OPTS(['marques'])
+);
+
+export const getCachedProductMarques = unstable_cache(
+  async (): Promise<Record<string, string>> => getProductMarques(),
+  ['product-marques'],
+  CACHE_OPTS(['product-marques'])
+);
+
 // ── Clients : store mutable module-level ──────────────────────────────────────
 let _clients: Client[] | null = null;
 
@@ -111,6 +146,12 @@ export function patchCachedClients(patches: (Partial<Client> & { id: string })[]
 
 export function invalidateCachedClients(): void {
   _clients = null;
+}
+
+// ── Revendeurs : source publique (champs vitrine uniquement) via CF ───────────
+export async function getCachedRevendeurs(): Promise<RevendeurResult[]> {
+  if (process.env.NEXT_PHASE === 'phase-production-build') return [];
+  return (await fetchFromCF<RevendeurResult[]>('revendeurs')) ?? [];
 }
 
 // ── Catalogues : store mutable module-level ───────────────────────────────────

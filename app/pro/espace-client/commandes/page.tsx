@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import Breadcrumb from '@/components/ui/Breadcrumb';
-import { getCommandesByClientId, Commande, ETAT_LABELS } from '@/lib/firestore/orders';
+import { type Commande, ETAT_LABELS } from '@/lib/firestore/orders';
+import { api } from '@/lib/api';
 
 const ETAT_COLORS: Record<string, string> = {
   C: 'bg-green-100 text-green-800',
@@ -14,23 +15,24 @@ const ETAT_COLORS: Record<string, string> = {
 };
 
 export default function MesCommandesPage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const clientId = profile?.client_erp_id ?? profile?.client_id;
-    if (!clientId) {
+    if (!clientId || !user) {
       setLoading(false);
       return;
     }
 
-    getCommandesByClientId(clientId)
+    user.getIdToken()
+      .then((token) => api.getCommandes(clientId, token))
       .then(setCommandes)
       .catch((err) => { console.error('Erreur commandes:', err); setError('Impossible de charger vos commandes.'); })
       .finally(() => setLoading(false));
-  }, [profile?.client_erp_id]);
+  }, [profile?.client_erp_id, user]);
 
   return (
     <div className="max-w-4xl">

@@ -6,6 +6,7 @@ import type { Catalogue } from './firestore/catalogues';
 import type { Marque } from './firestore/marques';
 import type { TarifLine } from './firestore/tarifs';
 import type { Client } from './firestore/clients';
+import type { Commande } from './firestore/orders';
 
 const CF_BASE = process.env.NEXT_PUBLIC_CACHE_CF_URL!;
 
@@ -19,6 +20,7 @@ const TTL: Record<string, number> = {
   'tarif-lines':      5 * 60 * 1000,
   clients:            2 * 60 * 1000,
   orders:             1 * 60 * 1000,
+  commandes:          2 * 60 * 1000,
   marques:           30 * 60 * 1000,
 };
 
@@ -64,6 +66,7 @@ export const api = {
   getMarques:        () => fetchCollection<Marque[]>('marques'),
   getTarifLines:     (gridId: string, idToken: string) => fetchCollection<TarifLine[]>('tarif-lines', { gridId }, idToken),
   getClients:        (idToken: string) => fetchCollection<Client[]>('clients', undefined, idToken),
+  getCommandes:      (cltId: string, idToken: string) => fetchCollection<Commande[]>('commandes', { cltId }, idToken),
 
   invalidate: (collection: string) => {
     if (!CF_BASE) return Promise.resolve();

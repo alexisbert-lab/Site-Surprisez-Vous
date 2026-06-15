@@ -4,10 +4,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useIframeEdit } from '@/lib/iframe-edit-context';
 
+interface SubItem {
+  label: string;
+  href: string;
+}
+
 interface NavItemProps {
   label: React.ReactNode;
   href: string;
-  sub?: React.ReactNode[];
+  sub?: SubItem[];
   page?: string;
   hrefId?: string;
 }
@@ -87,16 +92,18 @@ export function NavItem({ label, href, sub, page, hrefId }: NavItemProps) {
           padding: '8px 0', minWidth: 200, zIndex: 100,
         }}>
           {sub.map((s, j) => (
-            <div key={j} style={{
-              padding: '8px 20px', fontSize: 13, fontFamily: 'var(--font-body)',
-              fontWeight: 600, color: '#1e2a35', cursor: 'pointer',
-              transition: 'background 0.15s',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#fdeaef')}
-              onMouseLeave={e => (e.currentTarget.style.background = '')}
-            >
-              {s}
-            </div>
+            <Link key={j} href={s.href} style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: '8px 20px', fontSize: 13, fontFamily: 'var(--font-body)',
+                fontWeight: 600, color: '#1e2a35', cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#fdeaef')}
+                onMouseLeave={e => (e.currentTarget.style.background = '')}
+              >
+                {s.label}
+              </div>
+            </Link>
           ))}
         </div>
       )}

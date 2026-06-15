@@ -7,6 +7,7 @@ import { api } from './api';
 // Keys: "${page}|${id}" for text, "${page}|${id}__color" for color, etc.
 interface IframeEditContextValue {
   isIframeMode: boolean;
+  isContentReady: boolean;
   getContent: (page: string, id: string) => string | undefined;
   getStyle: (page: string, id: string) => React.CSSProperties;
   getBlockStyle: (page: string, id: string) => React.CSSProperties;
@@ -16,6 +17,7 @@ interface IframeEditContextValue {
 
 const IframeEditContext = createContext<IframeEditContextValue>({
   isIframeMode: false,
+  isContentReady: false,
   getContent: () => undefined,
   getStyle: () => ({}),
   getBlockStyle: () => ({}),
@@ -23,17 +25,41 @@ const IframeEditContext = createContext<IframeEditContextValue>({
   notifyBlockSelected: () => {},
 });
 
-export function IframeEditProvider({ children }: { children: React.ReactNode }) {
+export function IframeEditProvider({
+  children,
+  initialPages,
+}: {
+  children: React.ReactNode;
+  initialPages?: Record<string, Record<string, string>>;
+}) {
   const pathname = usePathname();
   const [isIframeMode, setIsIframeMode] = useState(false);
-  const [store, setStore] = useState<Record<string, string>>({});
+
+  // Seed le store avec le contenu SSR pour éviter l'appel CF client-side
+  const [store, setStore] = useState<Record<string, string>>(() => {
+    if (!initialPages) return {};
+    const seed: Record<string, string> = {};
+    Object.entries(initialPages).forEach(([pg, data]) => {
+      Object.entries(data).forEach(([k, v]) => { seed[`${pg}|${k}`] = v as string; });
+    });
+    return seed;
+  });
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const loadedRef = useRef(new Set<string>());
+  const [isContentReady, setIsContentReady] = useState(false);
+
+  // Pages déjà chargées (SSR ou CF) — ne pas re-fetcher
+  const loadedRef = useRef(new Set<string>(Object.keys(initialPages ?? {})));
 
   const pageId = pathname === '/header-preview' ? 'header'
     : pathname === '/footer-preview' ? 'footer'
     : pathname === '/' ? 'home'
     : pathname.replace(/^\//, '').replace(/\//g, '-');
+
+  // Fallback : libère le loader après 3s même si le CF ne répond pas
+  useEffect(() => {
+    const t = setTimeout(() => setIsContentReady(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const isIframe = new URLSearchParams(window.location.search).get('_editmode') === '1';
@@ -43,6 +69,7 @@ export function IframeEditProvider({ children }: { children: React.ReactNode }) 
     const pages = ['header', ...(pageId !== 'header' ? [pageId] : [])];
     const toLoad = pages.filter(pg => !loadedRef.current.has(pg));
     if (toLoad.length === 0) {
+      setIsContentReady(true);
       if (isIframe) window.parent.postMessage({ type: 'IFRAME_READY', pageId }, '*');
       return;
     }
@@ -57,8 +84,10 @@ export function IframeEditProvider({ children }: { children: React.ReactNode }) 
           });
           return next;
         });
+        setIsContentReady(true);
         if (isIframe) window.parent.postMessage({ type: 'IFRAME_READY', pageId }, '*');
-      });
+      })
+      .catch(() => setIsContentReady(true));
   }, [pageId]);
 
   // Handle messages from admin parent
@@ -202,7 +231,7 @@ export function IframeEditProvider({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <IframeEditContext.Provider value={{ isIframeMode, getContent, getStyle, getBlockStyle, notifySelected, notifyBlockSelected }}>
+    <IframeEditContext.Provider value={{ isIframeMode, isContentReady, getContent, getStyle, getBlockStyle, notifySelected, notifyBlockSelected }}>
       {children}
     </IframeEditContext.Provider>
   );

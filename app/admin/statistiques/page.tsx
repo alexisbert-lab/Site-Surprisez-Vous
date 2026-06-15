@@ -5,6 +5,7 @@ import { getOrders, type Order } from '@/lib/firestore/orders';
 import { getProducts, type Product } from '@/lib/firestore/products';
 import { getClients, type Client } from '@/lib/firestore/clients';
 import { cardClass } from '@/lib/admin-styles';
+import { cachedFetch } from '@/lib/admin-cache';
 
 type Period = 'month' | '3months' | 'year' | 'last_year';
 
@@ -22,7 +23,11 @@ export default function AdminStatistiquesPage() {
   const [period, setPeriod] = useState<Period>('year');
 
   useEffect(() => {
-    Promise.all([getOrders(), getProducts(), getClients()])
+    Promise.all([
+      cachedFetch('orders', getOrders),
+      cachedFetch('products', getProducts),
+      cachedFetch('clients', getClients),
+    ])
       .then(([o, p, c]) => { setOrders(o); setProducts(p); setClients(c); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
