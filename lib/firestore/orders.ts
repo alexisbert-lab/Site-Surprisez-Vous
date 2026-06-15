@@ -5,6 +5,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -66,6 +67,10 @@ export async function createOrder(order: Omit<Order, 'id'>): Promise<string> {
   await setDoc(ref, order);
   pushOrderNotif(ref.id, `Nouvelle commande — ${order.client} (${order.montant_ht.toFixed(2)} € HT)`);
   return ref.id;
+}
+
+export async function deleteOrder(id: string): Promise<void> {
+  await deleteDoc(doc(db(), 'orders', id));
 }
 
 // ===== Collection "commandes" — commandes ERP =====

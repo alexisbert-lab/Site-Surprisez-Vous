@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import {
-  getCachedProducts,
+  getCachedPublicProducts,
   getCachedStatCategories,
   getCachedMarques,
   getCachedProductMarques,
@@ -10,7 +10,7 @@ import CatalogueClient from './CatalogueClient';
 
 export default async function CataloguePage() {
   const [products, statCategories, marques, productMarques, categories] = await Promise.all([
-    getCachedProducts(),
+    getCachedPublicProducts(),
     getCachedStatCategories(),
     getCachedMarques(),
     getCachedProductMarques(),

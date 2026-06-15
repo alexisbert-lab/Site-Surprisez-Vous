@@ -90,7 +90,24 @@ export async function getProductsByCategory(category: string): Promise<Product[]
   return snap.docs.map((d) => d.data() as Product);
 }
 
-export function filterArticlesVisibles(products: Product[]): Product[] {
+/** Champs strictement nécessaires au catalogue public (pas de prix/stock exposés). */
+export type PublicProduct = Pick<
+  Product,
+  'pdt_reference' | 'pdt_designation' | 'pdt_code_stat' | 'pdt_etat' | 'pdt_ean' | 'visible_override'
+>;
+
+export function toPublicProduct(p: Product): PublicProduct {
+  return {
+    pdt_reference: p.pdt_reference,
+    pdt_designation: p.pdt_designation,
+    pdt_code_stat: p.pdt_code_stat,
+    pdt_etat: p.pdt_etat,
+    pdt_ean: p.pdt_ean,
+    visible_override: p.visible_override,
+  };
+}
+
+export function filterArticlesVisibles<T extends Pick<Product, 'pdt_reference' | 'pdt_etat'>>(products: T[]): T[] {
   return products.filter((p) => {
     if (!p.pdt_reference) return false;
     if (p.pdt_reference.toUpperCase().startsWith('ZFB')) return false;
@@ -102,7 +119,9 @@ export function filterArticlesVisibles(products: Product[]): Product[] {
 
 /** Filtre avec prise en compte des codes stats inactifs (cascade parent→enfant).
  *  Un produit avec visible_override=true reste visible même si son code stat est inactif. */
-export function filterArticlesVisiblesWithStatCats(products: Product[], statCats: StatCategory[]): Product[] {
+export function filterArticlesVisiblesWithStatCats<
+  T extends Pick<Product, 'pdt_reference' | 'pdt_etat' | 'pdt_code_stat' | 'visible_override'>,
+>(products: T[], statCats: StatCategory[]): T[] {
   const inactive = new Set(statCats.filter((c) => !c.actif).map((c) => c.code));
   if (inactive.size === 0) return filterArticlesVisibles(products);
   return filterArticlesVisibles(products).filter((p) => {

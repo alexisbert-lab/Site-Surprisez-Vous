@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { filterArticlesVisiblesWithStatCats, type Product } from '@/lib/firestore/products';
+import { filterArticlesVisiblesWithStatCats, type PublicProduct } from '@/lib/firestore/products';
 import { type StatCategory } from '@/lib/firestore/stat-categories';
 import { type Marque } from '@/lib/firestore/marques';
 import { type Category } from '@/lib/firestore/categories';
@@ -15,14 +15,14 @@ import { ArrowLeft } from 'lucide-react';
 type Tab = 'gamme' | 'marque' | 'theme' | 'search';
 
 interface Props {
-  products: Product[];
+  products: PublicProduct[];
   statCategories: StatCategory[];
   marques: Marque[];
   productMarques: Record<string, string>;
   categories: Category[];
 }
 
-function ProductCard({ product, gammeLabel }: { product: Product; gammeLabel?: string }) {
+function ProductCard({ product, gammeLabel }: { product: PublicProduct; gammeLabel?: string }) {
   return (
     <div className="bg-white border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-md transition-shadow">
       <div className="aspect-square bg-sv-grey-light flex items-center justify-center overflow-hidden">
@@ -38,6 +38,42 @@ function ProductCard({ product, gammeLabel }: { product: Product; gammeLabel?: s
         <p className="text-sm font-semibold text-ink leading-tight line-clamp-2">{product.pdt_designation}</p>
       </div>
     </div>
+  );
+}
+
+const BATCH = 24;
+
+/** Grille produits à révélation progressive (infinite scroll) — évite de monter des centaines de cartes d'un coup. */
+function ProductGrid({ products, gammeOf }: {
+  products: PublicProduct[];
+  gammeOf?: (p: PublicProduct) => string | undefined;
+}) {
+  const [limit, setLimit] = useState(BATCH);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setLimit(BATCH); }, [products]);
+
+  useEffect(() => {
+    if (limit >= products.length) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setLimit((l) => Math.min(l + BATCH, products.length)); },
+      { rootMargin: '600px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [limit, products.length]);
+
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {products.slice(0, limit).map((p) => (
+          <ProductCard key={p.pdt_reference} product={p} gammeLabel={gammeOf?.(p)} />
+        ))}
+      </div>
+      {limit < products.length && <div ref={sentinelRef} className="h-10" />}
+    </>
   );
 }
 
@@ -185,7 +221,7 @@ export default function CatalogueClient({ products, statCategories, marques, pro
     return [];
   }, [tab, selectedGamme, selectedMarque, selectedTheme, search, visibleProducts, productMarques, categories]);
 
-  const getGammeForProduct = (p: Product) =>
+  const getGammeForProduct = (p: PublicProduct) =>
     statCategories.find((c) => c.niveau === 1 && (p.pdt_code_stat || '').startsWith(c.code))?.designation;
 
   if (loading) {
@@ -249,11 +285,7 @@ export default function CatalogueClient({ products, statCategories, marques, pro
                 <ArrowLeft size={16} /> Toutes les gammes
               </button>
               <h2 className="text-xl font-bold text-ink mb-5">{gammeLabel}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {displayedProducts.map((p) => (
-                  <ProductCard key={p.pdt_reference} product={p} />
-                ))}
-              </div>
+              <ProductGrid products={displayedProducts} />
             </>
           )}
         </>
@@ -277,11 +309,7 @@ export default function CatalogueClient({ products, statCategories, marques, pro
                 <ArrowLeft size={16} /> Toutes les marques
               </button>
               <h2 className="text-xl font-bold text-ink mb-5">{marqueLabel}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {displayedProducts.map((p) => (
-                  <ProductCard key={p.pdt_reference} product={p} />
-                ))}
-              </div>
+              <ProductGrid products={displayedProducts} />
             </>
           )}
         </>
@@ -316,11 +344,7 @@ export default function CatalogueClient({ products, statCategories, marques, pro
                 <ArrowLeft size={16} /> Tous les thèmes
               </button>
               <h2 className="text-xl font-bold text-ink mb-5">{themeLabel}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {displayedProducts.map((p) => (
-                  <ProductCard key={p.pdt_reference} product={p} />
-                ))}
-              </div>
+              <ProductGrid products={displayedProducts} />
             </>
           )}
         </>
@@ -338,11 +362,7 @@ export default function CatalogueClient({ products, statCategories, marques, pro
             <>
               <p className="text-sm text-ink-secondary mb-4">{displayedProducts.length} résultat{displayedProducts.length !== 1 ? 's' : ''}</p>
               {displayedProducts.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {displayedProducts.map((p) => (
-                    <ProductCard key={p.pdt_reference} product={p} gammeLabel={getGammeForProduct(p)} />
-                  ))}
-                </div>
+                <ProductGrid products={displayedProducts} gammeOf={getGammeForProduct} />
               ) : (
                 <p className="text-ink-secondary text-sm italic">Aucun article trouvé.</p>
               )}

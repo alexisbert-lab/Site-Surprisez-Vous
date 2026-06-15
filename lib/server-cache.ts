@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { getProducts, type Product } from './firestore/products';
+import { getProducts, toPublicProduct, type Product, type PublicProduct } from './firestore/products';
 import { getCategories, getDeclinations, type Category, type Declination } from './firestore/categories';
 import { getEvenements, type Evenement } from './firestore/evenements';
 import { getStatCategories, type StatCategory } from './firestore/stat-categories';
@@ -7,6 +7,7 @@ import { getStockSettings, type StockSettings } from './firestore/settings';
 import { getTarifLines, type TarifLine } from './firestore/tarifs';
 import { getClients, type Client } from './firestore/clients';
 import { getCatalogues, type Catalogue } from './firestore/catalogues';
+import type { RevendeurResult } from './firestore/revendeurs';
 import {
   getThemeColors, getHeaderSettings, getFooterSettings,
   type ThemeColors, type HeaderSettings, type FooterSettings,
@@ -42,6 +43,12 @@ export async function getCachedProducts(): Promise<Product[]> {
   if (g._sv_products != null) return g._sv_products;
   g._sv_products = (await fetchFromCF<Product[]>('products')) ?? await getProducts();
   return g._sv_products;
+}
+
+/** Version allégée pour le catalogue public : seulement les champs affichés, sans prix ni stock. */
+export async function getCachedPublicProducts(): Promise<PublicProduct[]> {
+  const all = await getCachedProducts();
+  return all.map(toPublicProduct);
 }
 
 /** Met à jour uniquement les produits passés en paramètre (merge par pdt_reference). */
@@ -139,6 +146,12 @@ export function patchCachedClients(patches: (Partial<Client> & { id: string })[]
 
 export function invalidateCachedClients(): void {
   _clients = null;
+}
+
+// ── Revendeurs : source publique (champs vitrine uniquement) via CF ───────────
+export async function getCachedRevendeurs(): Promise<RevendeurResult[]> {
+  if (process.env.NEXT_PHASE === 'phase-production-build') return [];
+  return (await fetchFromCF<RevendeurResult[]>('revendeurs')) ?? [];
 }
 
 // ── Catalogues : store mutable module-level ───────────────────────────────────

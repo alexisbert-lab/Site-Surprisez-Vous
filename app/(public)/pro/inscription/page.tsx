@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { GoogleReCaptchaProvider, useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import Button from '@/components/ui/Button';
 import EditableText from '@/components/editable/EditableText';
 
@@ -31,7 +32,8 @@ const initialData: FormData = {
   commentaire: '', cgvAccepted: false,
 };
 
-export default function InscriptionProPage() {
+function InscriptionProForm() {
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const [form, setForm] = useState<FormData>(initialData);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -61,9 +63,12 @@ export default function InscriptionProPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    if (!executeRecaptcha) return;
     setSubmitting(true);
     try {
-      // TODO: Appel Cloud Function pour traitement serveur
+      const recaptchaToken = await executeRecaptcha('inscription_pro');
+      // TODO: Appel Cloud Function pour traitement serveur (passer recaptchaToken pour vérification côté serveur)
+      void recaptchaToken;
       await new Promise((r) => setTimeout(r, 1000));
       setSuccess(true);
     } catch {
@@ -244,5 +249,13 @@ export default function InscriptionProPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function InscriptionProPage() {
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}>
+      <InscriptionProForm />
+    </GoogleReCaptchaProvider>
   );
 }

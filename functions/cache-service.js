@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const zlib = require('zlib');
 const { onRequest } = require('firebase-functions/v2/https');
 
 // Lazy reference — admin.initializeApp() is called by index.js before any request
@@ -92,6 +93,24 @@ async function readClients() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+async function readRevendeurs() {
+  // Source publique de la carte revendeurs : uniquement les champs vitrine (pas de PII).
+  const snap = await db().collection('clients').where('statut', '==', 'Valide').get();
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((c) => c.revendeur && c.revendeur.lat && c.revendeur.lng)
+    .map((c) => ({
+      id: c.id,
+      nom: c.enseigne || c.raison_soc,
+      adresse: c.adr || '',
+      ville: c.ville || '',
+      codePostal: c.cp || '',
+      telephone: c.tel || '',
+      lat: c.revendeur.lat,
+      lng: c.revendeur.lng,
+    }));
+}
+
 async function readCommandes(cltId) {
   let q = db().collection('commandes').orderBy('date', 'desc');
   if (cltId) q = q.where('clt_id', '==', cltId);
@@ -111,6 +130,7 @@ const READERS = {
   'marques':         (p) => readMarques(),
   'tarif-lines':     (p) => readTarifLines(p.gridId),
   'clients':         (p) => readClients(),
+  'revendeurs':      (p) => readRevendeurs(),
   'commandes':       (p) => readCommandes(p.cltId),
 };
 
@@ -135,6 +155,8 @@ function invalidate(collection, params = {}) {
     for (const k of CACHE.keys()) {
       if (k.startsWith(collection)) CACHE.delete(k);
     }
+    // La carte revendeurs dérive de clients → invalider les deux ensemble.
+    if (collection === 'clients') invalidate('revendeurs');
   }
 }
 
@@ -145,6 +167,19 @@ function setCorsHeaders(res) {
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.set('Access-Control-Expose-Headers', 'X-Cache-Version, X-Cache-Hit');
+}
+
+/** Envoie du JSON en gzip si le client l'accepte (Cloud Run ne compresse pas automatiquement). */
+function sendJson(req, res, data) {
+  const body = Buffer.from(JSON.stringify(data));
+  const accepts = (req.headers['accept-encoding'] || '').includes('gzip');
+  res.set('Content-Type', 'application/json; charset=utf-8');
+  res.set('Vary', 'Accept-Encoding');
+  if (accepts && body.length > 1024) {
+    res.set('Content-Encoding', 'gzip');
+    return res.status(200).send(zlib.gzipSync(body));
+  }
+  return res.status(200).send(body);
 }
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
@@ -207,7 +242,7 @@ const handler = onRequest(
     const { data, version, fromCache } = await getFromCache(col, params);
     res.set('X-Cache-Version', String(version));
     res.set('X-Cache-Hit', fromCache ? '1' : '0');
-    return res.json(data);
+    return sendJson(req, res, data);
   } catch (err) {
     console.error(`[cache-service] ${col}:`, err);
     return res.status(500).json({ error: String(err.message) });
