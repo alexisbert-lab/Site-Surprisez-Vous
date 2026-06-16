@@ -7,7 +7,6 @@ import ShowroomPresentation  from './ShowroomPresentation';
 import ShowroomAddress       from './ShowroomAddress';
 import ShowroomCTA           from './ShowroomCTA';
 import { state } from './showroomState';
-import Link from 'next/link';
 
 const SCROLL_PER = () => window.innerHeight * 2;
 const NUM_SLIDES = 6;
@@ -125,26 +124,6 @@ export default function ShowroomApp() {
     <>
       {/* Scroll driver in normal flow — creates the scrollable height */}
       <div id="sv-scroll-driver" />
-
-      {/* Bouton retour accueil */}
-      <Link href="/" style={{
-        position: 'fixed', top: 20, left: 24, zIndex: 200,
-        display: 'flex', alignItems: 'center', gap: 8,
-        background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.2)',
-        color: '#fff', textDecoration: 'none',
-        borderRadius: 99, padding: '8px 16px 8px 12px',
-        fontSize: 13, fontFamily: 'var(--font-heading)', fontWeight: 700,
-        transition: 'background 0.2s',
-      }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
-      >
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-        </svg>
-        Accueil
-      </Link>
 
       {/* Fixed viewport — all slides render here */}
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: 50, pointerEvents: 'none' }}>

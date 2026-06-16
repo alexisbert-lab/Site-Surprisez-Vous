@@ -112,8 +112,7 @@ button, a, input, select, textarea {
 @keyframes meshFloat1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(3%,2%) scale(1.05)} 66%{transform:translate(-2%,4%) scale(.97)} }
 @keyframes meshFloat2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-4%,-3%) scale(1.06)} 70%{transform:translate(3%,-1%) scale(.95)} }
 
-/* ── Showroom page — immersive mode ── */
-body.showroom-page header,
+/* ── Showroom page — immersive mode (header conservé, footer masqué) ── */
 body.showroom-page footer { display: none !important; }
 body.showroom-page main { padding-top: 0 !important; }
 body.showroom-page #sv-progress { z-index: 1100 !important; }

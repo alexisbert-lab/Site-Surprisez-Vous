@@ -229,7 +229,9 @@ export async function getCachedPageContent(pageId: string): Promise<Record<strin
   if (process.env.NEXT_PHASE === 'phase-production-build') return {};
   if (_pageContent === null) _pageContent = new Map();
   if (!_pageContent.has(pageId)) {
-    _pageContent.set(pageId, await getPageContent(pageId));
+    // CF (Admin SDK, rapide) d'abord — évite un getDoc client-SDK lent côté serveur qui bloque le SSR.
+    const data = (await fetchFromCF<Record<string, string>>(`page-content?page=${pageId}`)) ?? await getPageContent(pageId);
+    _pageContent.set(pageId, data);
   }
   return _pageContent.get(pageId)!;
 }

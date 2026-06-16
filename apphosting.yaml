@@ -6,15 +6,50 @@ runConfig:
   concurrency: 80
 
 env:
+  # ── Config Firebase (clés publiques — déjà exposées dans le bundle client) ──
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    secret: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCMJXusbMUcQOhwYOi3WxS73xMkt36yTCY
+    availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    secret: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: site-surprisez-vous.web.app
+    availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    secret: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: site-surprisez-vous
+    availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    secret: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: site-surprisez-vous.firebasestorage.app
+    availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    secret: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "194856824011"
+    availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    secret: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:194856824011:web:07c3a5854cb73c0cd97f4e"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_DATABASE_URL
+    value: https://site-surprisez-vous-default-rtdb.firebaseio.com
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-7H709DQMQ9
+    availability: [BUILD, RUNTIME]
+
+  # ── Cache Cloud Function (URL publique) ───────────────────────────────────
+  - variable: NEXT_PUBLIC_CACHE_CF_URL
+    value: https://us-central1-site-surprisez-vous.cloudfunctions.net/cacheData
+    availability: [BUILD, RUNTIME]
+  - variable: CACHE_CF_URL
+    value: https://us-central1-site-surprisez-vous.cloudfunctions.net/cacheData
+    availability: [BUILD, RUNTIME]
+  - variable: CACHE_SECRET
+    secret: CACHE_SECRET
+    availability: [RUNTIME]
+
+  # ── Divers ────────────────────────────────────────────────────────────────
+  - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    value: 6LdzZxstAAAAAA1YTYHw7QjEHBSKp-9pwSoEW6Hf
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_INSTAGRAM_FUNCTION_URL
+    value: https://us-central1-site-surprisez-vous.cloudfunctions.net/instagramFeed
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_INSTAGRAM_HANDLE
+    value: "@surprisez_vous"
+    availability: [BUILD, RUNTIME]
