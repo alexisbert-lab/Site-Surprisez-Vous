@@ -1,7 +1,4 @@
-export const dynamic = 'force-static';
-export function generateStaticParams() {
-  return ['products', 'stat-categories', 'clients', 'catalogues', 'tarif-lines'].map(c => ({ collection: c }));
-}
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getCachedProducts,
