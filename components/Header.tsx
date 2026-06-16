@@ -35,7 +35,7 @@ export default function Header() {
     const onScroll = () => {
       const y = window.scrollY;
       setScrolled(y > 10);
-      if (y > lastScrollY.current && y > 80 && !document.body.classList.contains('showroom-page')) setHidden(true);
+      if (y > lastScrollY.current && y > 80) setHidden(true);
       else if (y < lastScrollY.current) setHidden(false);
       lastScrollY.current = y;
     };
