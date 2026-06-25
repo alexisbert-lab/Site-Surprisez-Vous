@@ -702,7 +702,7 @@ const CLIENT_SYNC_FIELDS = [
   "email", "tel", "fax", "nom_gerant", "prenom_gerant",
   "nom_ach", "prenom_ach", "adr", "cp", "ville", "pays",
   "profil_id", "groupe_contact_id", "commentaire", "raison_desactive",
-  "login", "motdepasse", "statut",
+  "statut",
 ];
 
 // ===== Sync Clients_Final.csv -> collection "clients" =====
@@ -744,8 +744,6 @@ async function syncClientsCsv(rows) {
       groupe_contact_id: (row.grpconid || "").toString().trim(),
       commentaire: (row.commentaire || "").toString().trim(),
       raison_desactive: (row.raison_desactive || "").toString().trim(),
-      login: (row.login || "").toString().trim(),
-      motdepasse: (row.motdepasse || "").toString().trim(),
       statut,
     };
 
