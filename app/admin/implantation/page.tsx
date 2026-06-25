@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getAllContenuPages, updateContenuPage, type ContenuPage } from '@/lib/firestore/contenu-pages';
-import { getProducts, filterArticlesVisibles, type Product } from '@/lib/firestore/products';
-import { cachedFetch, invalidateAdminCache } from '@/lib/admin-cache';
+import { updateContenuPage } from '@/lib/firestore/contenu-pages';
+import { filterArticlesVisibles, type Product } from '@/lib/firestore/products';
+import { api } from '@/lib/api';
+import { invalidateCached } from '@/lib/client-cache';
 import { btnPrimSm, btnSecSm, btnDangerSm, inputSm, cardClass } from '@/lib/admin-styles';
 
 const ZONES = [
@@ -27,8 +28,8 @@ export default function AdminImplantationPage() {
 
   useEffect(() => {
     Promise.all([
-      cachedFetch('admin:contenu-pages', getAllContenuPages),
-      cachedFetch('admin:products', getProducts),
+      api.getContenuPages(),
+      api.getProducts(),
     ])
       .then(([pages, prods]) => {
         setProducts(filterArticlesVisibles(prods));
@@ -94,7 +95,8 @@ export default function AdminImplantationPage() {
         images: zone.refs.map((ref, i) => ({ url: ref, ordre: i })),
       });
     }
-    invalidateAdminCache('admin:contenu-pages');
+    invalidateCached('contenu-pages');
+    api.invalidate('contenu-pages').catch(() => {});
     setSaving(false);
     alert('Implantation sauvegardée.');
   };

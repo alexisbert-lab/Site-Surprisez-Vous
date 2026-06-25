@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { filterArticlesVisibles, getProducts, setProductVisibleOverride, getStatCategory, isEnRupture, isStockFaible, formatEan, type Product } from '@/lib/firestore/products';
+import { filterArticlesVisibles, setProductVisibleOverride, getStatCategory, isEnRupture, isStockFaible, formatEan, type Product } from '@/lib/firestore/products';
 import {
-  getCategories, getDeclinations,
   createCategory, updateCategory, deleteCategory,
   saveDeclination, deleteDeclination,
   type Category, type Declination,
 } from '@/lib/firestore/categories';
-import { getEvenements, saveEvenement, deleteEvenement, type Evenement } from '@/lib/firestore/evenements';
-import { getStockSettings, saveStockSettings, type StockSettings } from '@/lib/firestore/settings';
-import { getStatCategories, toggleStatCategoryActif, getNiveau, getParentCode, saveStatCategories, type StatCategory } from '@/lib/firestore/stat-categories';
-import { cachedFetch } from '@/lib/admin-cache';
+import { saveEvenement, deleteEvenement, type Evenement } from '@/lib/firestore/evenements';
+import { saveStockSettings, type StockSettings } from '@/lib/firestore/settings';
+import { toggleStatCategoryActif, getNiveau, getParentCode, saveStatCategories, type StatCategory } from '@/lib/firestore/stat-categories';
+import { api } from '@/lib/api';
+import { invalidateCached } from '@/lib/client-cache';
 import Badge from '@/components/ui/Badge';
 import Modal, { ModalTitle, ModalActions } from '@/components/ui/Modal';
 import { thClass, tdClass, btnPrimSm, btnSecSm, btnDangerSm, inputSm, selectClass } from '@/lib/admin-styles';
@@ -53,13 +53,18 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
 
   useEffect(() => {
     if (products.length > 0) return;
-    cachedFetch('admin:products', getProducts).then((data) => setProducts(filterArticlesVisibles(data)));
-    cachedFetch('admin:categories', getCategories).then(setCategories);
-    cachedFetch('admin:declinations', getDeclinations).then(setDeclinations);
-    cachedFetch('admin:evenements', getEvenements).then(setEvenements);
-    cachedFetch('admin:stat-categories', getStatCategories).then(setStatCats);
-    getStockSettings().then((s) => { setSeuilStockFaible(s.seuil_stock_faible); setSeuilInput(String(s.seuil_stock_faible)); });
+    api.getProducts().then((data) => setProducts(filterArticlesVisibles(data)));
+    api.getCategories().then(setCategories);
+    api.getDeclinations().then(setDeclinations);
+    api.getEvenements().then(setEvenements);
+    api.getStatCategories().then(setStatCats);
+    api.getStockSettings().then((s) => { setSeuilStockFaible(s.seuil_stock_faible); setSeuilInput(String(s.seuil_stock_faible)); });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const bust = (collection: string) => {
+    invalidateCached(collection);
+    api.invalidate(collection).catch(() => {});
+  };
 
   const statCategories = useMemo(() => [...new Set(products.map((p) => getStatCategory(p.pdt_code_stat)).filter(Boolean))].sort(), [products]);
   const statCodes = useMemo(() => {
@@ -87,6 +92,7 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
   const handleAddCategory = async () => {
     if (!newCatName.trim() || !newCatCodeStat.trim()) return;
     const id = await createCategory(newCatName.trim(), newCatCodeStat.trim());
+    bust('categories');
     setCategories((prev) => [...prev, { id, nom: newCatName.trim(), code_stat: newCatCodeStat.trim().toUpperCase() }]);
     setNewCatName(''); setNewCatCodeStat('');
   };
@@ -94,10 +100,11 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
   const handleSaveEditCategory = async () => {
     if (!editCatId || !editCatName.trim() || !editCatCodeStat.trim()) return;
     await updateCategory(editCatId, { nom: editCatName.trim(), code_stat: editCatCodeStat.trim() });
+    bust('categories');
     setCategories((prev) => prev.map((c) => c.id === editCatId ? { ...c, nom: editCatName.trim(), code_stat: editCatCodeStat.trim().toUpperCase() } : c));
     setEditCatId(null);
   };
-  const handleDeleteCategory = async (id: string) => { if (!confirm('Supprimer ce groupe ?')) return; await deleteCategory(id); setCategories((prev) => prev.filter((c) => c.id !== id)); };
+  const handleDeleteCategory = async (id: string) => { if (!confirm('Supprimer ce groupe ?')) return; await deleteCategory(id); bust('categories'); setCategories((prev) => prev.filter((c) => c.id !== id)); };
 
   const resetDecForm = () => setDecForm({ id: '', designation: '', sous_titre: '', variants: [] });
   const handleSaveDec = async () => {
@@ -107,11 +114,12 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
     const id = decForm.id || Math.random().toString(36).slice(2, 10);
     const dec: Declination = { id, designation: decForm.designation, sous_titre: decForm.sous_titre, variants: validVariants.map((v) => ({ label: v.label, ref: v.ref.toUpperCase() })) };
     await saveDeclination(dec);
+    bust('declinations');
     setDeclinations((prev) => { const idx = prev.findIndex((d) => d.id === id); if (idx !== -1) { const next = [...prev]; next[idx] = dec; return next; } return [...prev, dec]; });
     resetDecForm();
   };
   const handleEditDec = (dec: Declination) => setDecForm({ id: dec.id, designation: dec.designation, sous_titre: dec.sous_titre || '', variants: dec.variants.map((v) => ({ ...v })) });
-  const handleDeleteDec = async (id: string) => { if (!confirm('Supprimer cette declinaison ?')) return; await deleteDeclination(id); setDeclinations((prev) => prev.filter((d) => d.id !== id)); };
+  const handleDeleteDec = async (id: string) => { if (!confirm('Supprimer cette declinaison ?')) return; await deleteDeclination(id); bust('declinations'); setDeclinations((prev) => prev.filter((d) => d.id !== id)); };
 
   const resetEvtForm = () => setEvtForm({ id: '', nom: '', description: '', categories: [], actif: true });
   const handleSaveEvt = async () => {
@@ -119,6 +127,7 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
     const maxOrdre = evenements.length > 0 ? Math.max(...evenements.map((e) => e.ordre)) + 1 : 0;
     const evt: Evenement = { id: evtForm.id, nom: evtForm.nom.trim(), description: evtForm.description, categories: evtForm.categories, actif: evtForm.actif, ordre: maxOrdre };
     const id = await saveEvenement(evt);
+    bust('evenements');
     setEvenements((prev) => {
       const idx = prev.findIndex((e) => e.id === (evtForm.id || id));
       const updated = { ...evt, id: evtForm.id || id };
@@ -128,12 +137,13 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
     resetEvtForm();
   };
   const handleEditEvt = (e: Evenement) => setEvtForm({ id: e.id, nom: e.nom, description: e.description || '', categories: e.categories || [], actif: e.actif });
-  const handleDeleteEvt = async (id: string) => { if (!confirm('Supprimer cet événement ?')) return; await deleteEvenement(id); setEvenements((prev) => prev.filter((e) => e.id !== id)); };
+  const handleDeleteEvt = async (id: string) => { if (!confirm('Supprimer cet événement ?')) return; await deleteEvenement(id); bust('evenements'); setEvenements((prev) => prev.filter((e) => e.id !== id)); };
   const toggleEvtCategory = (catId: string) => {
     setEvtForm((p) => ({ ...p, categories: p.categories.includes(catId) ? p.categories.filter((c) => c !== catId) : [...p.categories, catId] }));
   };
 
   const handleSyncCache = async (tags: string[]) => {
+    tags.forEach(bust);
     await fetch('/api/revalidate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -189,6 +199,7 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
                 if (!val || val < 1) return;
                 setSeuilStockFaible(val);
                 await saveStockSettings({ seuil_stock_faible: val });
+                bust('stock-settings');
               }}>OK</button>
             </div>
           </div>
@@ -422,6 +433,7 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
             const toggleOverride = async (prod: Product) => {
               const next = !prod.visible_override;
               await setProductVisibleOverride(prod.pdt_reference, next);
+              bust('products');
               setProducts((prev) => prev.map((p) => p.pdt_reference === prod.pdt_reference ? { ...p, visible_override: next } : p));
             };
             const renderProductList = (code: string) => {

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getClients, getProRequestsByStatus, updateProRequestStatus, updateClient, linkClientToUser, unlinkClientFromUser, type Client, type ProRequest } from '@/lib/firestore/clients';
-import { cachedFetch, invalidateAdminCache } from '@/lib/admin-cache';
+import { updateProRequestStatus, updateClient, linkClientToUser, unlinkClientFromUser, type Client, type ProRequest } from '@/lib/firestore/clients';
+import { api } from '@/lib/api';
+import { invalidateCached } from '@/lib/client-cache';
+import { useAuth } from '@/lib/auth-context';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
-import { getTarifGrids, type TarifGrid } from '@/lib/firestore/tarifs';
+import { type TarifGrid } from '@/lib/firestore/tarifs';
 import Modal, { ModalTitle, ModalActions } from '@/components/ui/Modal';
 
 export default function AdminCrmPage() {
@@ -17,18 +19,20 @@ export default function AdminCrmPage() {
   const [linkUid, setLinkUid] = useState('');
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
-    Promise.all([
-      cachedFetch('crm-clients', () => getClients()),
-      cachedFetch('crm-pro-requests', () => getProRequestsByStatus('En attente')),
-      cachedFetch('crm-tarif-grids', () => getTarifGrids().then((g) => g.filter((g) => g.statut === 'active'))),
-    ]).then(([cls, reqs, gds]) => {
+    if (!user) return;
+    user.getIdToken().then((token) => Promise.all([
+      api.getClients(token),
+      api.getProRequests(token),
+      api.getTarifGrids(token),
+    ])).then(([cls, reqs, gds]) => {
       setClients(cls);
-      setRequests(reqs);
-      setGrids(gds);
+      setRequests(reqs.filter((r) => r.statut === 'En attente'));
+      setGrids(gds.filter((g) => g.statut === 'active'));
     }).catch(() => {});
-  }, []);
+  }, [user]);
 
   const handleAssignTarif = async (clientId: string, tarif_grid_id: string) => {
     const client = clients.find((c) => c.id === clientId);
@@ -39,7 +43,8 @@ export default function AdminCrmPage() {
         tarif_grid_id: tarif_grid_id || null,
       });
     }
-    invalidateAdminCache('crm-clients');
+    invalidateCached('clients');
+    api.invalidate('clients').catch(() => {});
     setClients((prev) => prev.map((c) => c.id === clientId ? { ...c, tarif_grid_id: tarif_grid_id || undefined } : c));
     setModalClient((prev) => prev ? { ...prev, tarif_grid_id: tarif_grid_id || undefined } : prev);
   };
@@ -50,12 +55,15 @@ export default function AdminCrmPage() {
     setLinkError('');
     try {
       await linkClientToUser(modalClient.id, linkUid.trim(), modalClient.tarif_grid_id);
+      invalidateCached('clients');
+      api.invalidate('clients').catch(() => {});
       const updated = { ...modalClient, uid: linkUid.trim() };
       setClients((prev) => prev.map((c) => c.id === modalClient.id ? updated : c));
       setModalClient(updated);
       setLinkUid('');
-    } catch {
-      setLinkError('UID introuvable ou erreur lors de la liaison.');
+    } catch (e) {
+      console.error('linkClientToUser', e);
+      setLinkError(`Erreur lors de la liaison : ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLinkLoading(false);
     }
@@ -64,6 +72,8 @@ export default function AdminCrmPage() {
   const handleUnlink = async () => {
     if (!modalClient?.uid || !confirm('Délier ce compte ?')) return;
     await unlinkClientFromUser(modalClient.id, modalClient.uid);
+    invalidateCached('clients');
+    api.invalidate('clients').catch(() => {});
     const updated = { ...modalClient, uid: undefined };
     setClients((prev) => prev.map((c) => c.id === modalClient.id ? updated : c));
     setModalClient(updated);
@@ -79,7 +89,8 @@ export default function AdminCrmPage() {
     const req = requests.find((r) => r.id === id);
     if (!req || !confirm(`Valider et creer le compte Pro pour ${req.nom_entreprise} ?`)) return;
     await updateProRequestStatus(id, 'Valide');
-    invalidateAdminCache('crm-pro-requests');
+    invalidateCached('pro-requests');
+    api.invalidate('pro-requests').catch(() => {});
     setRequests((prev) => prev.filter((r) => r.id !== id));
   };
 
@@ -87,7 +98,8 @@ export default function AdminCrmPage() {
     const req = requests.find((r) => r.id === id);
     if (!req || !confirm(`Refuser la demande de ${req.nom_entreprise} ?`)) return;
     await updateProRequestStatus(id, 'Refuse');
-    invalidateAdminCache('crm-pro-requests');
+    invalidateCached('pro-requests');
+    api.invalidate('pro-requests').catch(() => {});
     setRequests((prev) => prev.filter((r) => r.id !== id));
   };
 

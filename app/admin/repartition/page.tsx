@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getProducts, filterArticlesVisibles, isEnRupture, isStockFaible, type Product } from '@/lib/firestore/products';
-import { getStatCategories, type StatCategory } from '@/lib/firestore/stat-categories';
-import { getStockSettings } from '@/lib/firestore/settings';
-import { cachedFetch } from '@/lib/admin-cache';
+import { filterArticlesVisibles, isEnRupture, isStockFaible, type Product } from '@/lib/firestore/products';
+import { type StatCategory } from '@/lib/firestore/stat-categories';
+import { api } from '@/lib/api';
 import Badge from '@/components/ui/Badge';
 import { thClass, tdClass, btnPrimSm, btnSecSm } from '@/lib/admin-styles';
 
@@ -34,9 +33,9 @@ export default function RepartitionPage() {
 
   useEffect(() => {
     Promise.all([
-      cachedFetch('repartition-products', () => getProducts()),
-      cachedFetch('repartition-stat-cats', () => getStatCategories()),
-      cachedFetch('repartition-stock-settings', () => getStockSettings()),
+      api.getProducts(),
+      api.getStatCategories(),
+      api.getStockSettings(),
     ])
       .then(([prods, cats, stockSettings]) => {
         setProducts(filterArticlesVisibles(prods));

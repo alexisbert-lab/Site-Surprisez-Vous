@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getGroupesContact, saveGroupeContact, deleteGroupeContact, type GroupeContact } from '@/lib/firestore/groupes-contact';
-import { getClients, type Client } from '@/lib/firestore/clients';
-import { cachedFetch, invalidateAdminCache } from '@/lib/admin-cache';
+import { saveGroupeContact, deleteGroupeContact, type GroupeContact } from '@/lib/firestore/groupes-contact';
+import { type Client } from '@/lib/firestore/clients';
+import { api } from '@/lib/api';
+import { invalidateCached } from '@/lib/client-cache';
+import { useAuth } from '@/lib/auth-context';
 import Modal, { ModalTitle, ModalActions } from '@/components/ui/Modal';
 import { btnPrimSm, btnSecSm, btnDangerSm, inputSm, cardClass } from '@/lib/admin-styles';
 
@@ -15,15 +17,22 @@ export default function AdminGroupesContactPage() {
   const [form, setForm] = useState({ nom: '', commercial_nom: '', description: '' });
   const [detailModal, setDetailModal] = useState<GroupeContact | null>(null);
   const [clientSearch, setClientSearch] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
-    Promise.all([
-      cachedFetch('admin:groupes-contact', getGroupesContact),
-      cachedFetch('admin:clients', getClients),
-    ])
+    if (!user) return;
+    user.getIdToken().then((t) => Promise.all([
+      api.getGroupesContact(t),
+      api.getClients(t),
+    ]))
       .then(([g, c]) => { setGroupes(g); setClients(c); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [user]);
+
+  const bustGroupes = () => {
+    invalidateCached('groupes-contact');
+    api.invalidate('groupes-contact').catch(() => {});
+  };
 
   const openCreate = () => {
     setEditModal({ id: '', nom: '', commercial_id: '', commercial_nom: '', client_ids: [], date_creation: new Date().toLocaleDateString('fr-FR') });
@@ -47,7 +56,7 @@ export default function AdminGroupesContactPage() {
       date_creation: editModal?.date_creation || new Date().toLocaleDateString('fr-FR'),
     };
     const id = await saveGroupeContact(groupe);
-    invalidateAdminCache('admin:groupes-contact');
+    bustGroupes();
     setGroupes((prev) => {
       const idx = prev.findIndex((g) => g.id === (editModal?.id || id));
       const updated = { ...groupe, id: editModal?.id || id };
@@ -60,7 +69,7 @@ export default function AdminGroupesContactPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer ce groupe ?')) return;
     await deleteGroupeContact(id);
-    invalidateAdminCache('admin:groupes-contact');
+    bustGroupes();
     setGroupes((prev) => prev.filter((g) => g.id !== id));
   };
 
@@ -68,6 +77,7 @@ export default function AdminGroupesContactPage() {
     if (!detailModal) return;
     const updated = { ...detailModal, client_ids: [...detailModal.client_ids, clientId] };
     await saveGroupeContact(updated);
+    bustGroupes();
     setDetailModal(updated);
     setGroupes((prev) => prev.map((g) => g.id === updated.id ? updated : g));
   };
@@ -76,6 +86,7 @@ export default function AdminGroupesContactPage() {
     if (!detailModal) return;
     const updated = { ...detailModal, client_ids: detailModal.client_ids.filter((id) => id !== clientId) };
     await saveGroupeContact(updated);
+    bustGroupes();
     setDetailModal(updated);
     setGroupes((prev) => prev.map((g) => g.id === updated.id ? updated : g));
   };
