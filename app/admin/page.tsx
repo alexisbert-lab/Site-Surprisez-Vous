@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getProducts, filterArticlesVisibles } from '@/lib/firestore/products';
-import { getOrders, type Order } from '@/lib/firestore/orders';
-import { getProRequests, getClients, type ProRequest } from '@/lib/firestore/clients';
-import { getMarketingItems } from '@/lib/firestore/marketing';
-import { cachedFetch } from '@/lib/admin-cache';
+import { filterArticlesVisibles } from '@/lib/firestore/products';
+import { type Order } from '@/lib/firestore/orders';
+import { type ProRequest } from '@/lib/firestore/clients';
+import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { statusBadge } from '@/components/ui/Badge';
 import { thClass, tdClass, btnPrimSm, btnSecSm, cardClass } from '@/lib/admin-styles';
 
@@ -16,14 +16,18 @@ export default function AdminDashboardPage() {
   const [requests, setRequests] = useState<ProRequest[]>([]);
   const [clientCount, setClientCount] = useState(0);
   const [marketingCount, setMarketingCount] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
-    cachedFetch('admin:products', getProducts).then((data) => setArticleCount(filterArticlesVisibles(data).length.toLocaleString('fr-FR'))).catch(() => {});
-    cachedFetch('admin:orders', getOrders).then(setOrders).catch(() => {});
-    cachedFetch('admin:proRequests', getProRequests).then((r) => setRequests(r.filter((req) => req.statut === 'En attente'))).catch(() => {});
-    cachedFetch('admin:clients', getClients).then((c) => setClientCount(c.filter((cl) => cl.statut === 'Valide').length)).catch(() => {});
-    cachedFetch('admin:marketing', getMarketingItems).then((m) => setMarketingCount(m.filter((i) => i.actif).length)).catch(() => {});
-  }, []);
+    api.getProducts().then((data) => setArticleCount(filterArticlesVisibles(data).length.toLocaleString('fr-FR'))).catch(() => {});
+    api.getMarketing().then((m) => setMarketingCount(m.filter((i) => i.actif).length)).catch(() => {});
+    if (!user) return;
+    user.getIdToken().then((t) => {
+      api.getOrders(t).then(setOrders).catch(() => {});
+      api.getProRequests(t).then((r) => setRequests(r.filter((req) => req.statut === 'En attente'))).catch(() => {});
+      api.getClients(t).then((c) => setClientCount(c.filter((cl) => cl.statut === 'Valide').length)).catch(() => {});
+    });
+  }, [user]);
 
   const recentOrders = orders.slice(0, 5);
   const orderCount = orders.filter((o) => o.statut !== 'Annulee').length;

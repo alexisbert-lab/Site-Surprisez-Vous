@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { cardClass, btnPrimSm } from '@/lib/admin-styles';
 import { invalidateAdminCache } from '@/lib/admin-cache';
+import { invalidateAll } from '@/lib/client-cache';
 
 const FUNCTIONS_BASE = 'https://us-central1-site-surprisez-vous.cloudfunctions.net';
 
@@ -120,6 +121,8 @@ async function invalidateCaches(cards: SyncCard[]): Promise<void> {
   if (allAdminKeys.length > 0) {
     invalidateAdminCache(...allAdminKeys);
   }
+  // Le backend invalide déjà la CF après sync ; reste à purger le cache localStorage persistant.
+  invalidateAll();
 }
 
 export default function AdminSyncPage() {

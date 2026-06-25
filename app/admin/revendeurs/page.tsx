@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getClients, type Client } from '@/lib/firestore/clients';
-import { setRevendeurCoords, geocodePostalCode } from '@/lib/firestore/revendeurs';
-import { cachedFetch, invalidateAdminCache } from '@/lib/admin-cache';
+import { type Client } from '@/lib/firestore/clients';
+import { setRevendeurCoords, geocodeAddress, geocodePostalCode } from '@/lib/firestore/revendeurs';
+import { api } from '@/lib/api';
+import { invalidateCached } from '@/lib/client-cache';
+import { useAuth } from '@/lib/auth-context';
 
 export default function AdminRevendeursPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -12,10 +14,12 @@ export default function AdminRevendeursPage() {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchDone, setBatchDone] = useState(0);
   const [batchTotal, setBatchTotal] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
-    cachedFetch('crm-clients', () => getClients()).then(setClients).catch(() => {});
-  }, []);
+    if (!user) return;
+    user.getIdToken().then((t) => api.getClients(t)).then(setClients).catch(() => {});
+  }, [user]);
 
   const filtered = useMemo(() => {
     let base = filter === 'no_coords'
@@ -33,19 +37,21 @@ export default function AdminRevendeursPage() {
   }, [clients, search, filter]);
 
   const noCoordCount = useMemo(
-    () => clients.filter((c) => c.cp && !c.revendeur?.lat).length,
+    () => clients.filter((c) => (c.adr || c.cp) && !c.revendeur?.lat).length,
     [clients]
   );
 
   const handleBatchGeocode = async () => {
-    const missing = clients.filter((c) => c.cp && !c.revendeur?.lat);
+    const missing = clients.filter((c) => (c.adr || c.cp) && !c.revendeur?.lat);
     if (missing.length === 0) return;
     setBatchLoading(true);
     setBatchDone(0);
     setBatchTotal(missing.length);
     let done = 0;
     for (const client of missing) {
-      const coords = await geocodePostalCode(client.cp!);
+      // Adresse complète d'abord (pin précis), repli sur le CP seul (niveau commune).
+      let coords = await geocodeAddress(client.adr || '', client.cp || '', client.ville || '');
+      if (!coords && client.cp) coords = await geocodePostalCode(client.cp);
       if (coords) {
         await setRevendeurCoords(client.id, coords.lat, coords.lng);
         setClients((prev) =>
@@ -59,7 +65,8 @@ export default function AdminRevendeursPage() {
       done++;
       setBatchDone(done);
     }
-    invalidateAdminCache('crm-clients');
+    invalidateCached('clients');
+    api.invalidate('clients').catch(() => {});
     setBatchLoading(false);
   };
 
@@ -144,7 +151,7 @@ export default function AdminRevendeursPage() {
                   </span>
                 ) : (
                   <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    {client.cp ? 'Non géolocalisé' : 'Pas de CP'}
+                    {(client.adr || client.cp) ? 'Non géolocalisé' : 'Pas d\'adresse'}
                   </span>
                 )}
               </div>

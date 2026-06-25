@@ -90,3 +90,11 @@ _legacy/
 
 # Firebase service account key (secret)
 serviceAccountKey.json
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Données ERP locales et notes de travail (ne pas committer)
+Clients_Final.csv
+exports_erp/
+functions/Architecture site SV.txt
