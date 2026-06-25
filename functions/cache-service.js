@@ -118,6 +118,51 @@ async function readCommandes(cltId) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+async function readOrders() {
+  const snap = await db().collection('orders').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function readMarketing() {
+  const snap = await db().collection('marketing').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function readGroupesContact() {
+  const snap = await db().collection('groupes-contact').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function readContenuPages() {
+  const snap = await db().collection('contenu-pages').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function readEvenements() {
+  const snap = await db().collection('evenements').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function readDeclinations() {
+  const snap = await db().collection('declinations').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function readTarifGrids() {
+  const snap = await db().collection('tarifs').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function readProRequests() {
+  const snap = await db().collection('pro-requests').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function readStockSettings() {
+  const snap = await db().collection('settings').doc('stock').get();
+  return { seuil_stock_faible: 20, ...(snap.exists ? snap.data() : {}) };
+}
+
 // ─── Core cache getter ────────────────────────────────────────────────────────
 
 const READERS = {
@@ -132,6 +177,15 @@ const READERS = {
   'clients':         (p) => readClients(),
   'revendeurs':      (p) => readRevendeurs(),
   'commandes':       (p) => readCommandes(p.cltId),
+  'orders':          (p) => readOrders(),
+  'marketing':       (p) => readMarketing(),
+  'groupes-contact': (p) => readGroupesContact(),
+  'contenu-pages':   (p) => readContenuPages(),
+  'evenements':      (p) => readEvenements(),
+  'declinations':    (p) => readDeclinations(),
+  'tarif-grids':     (p) => readTarifGrids(),
+  'pro-requests':    (p) => readProRequests(),
+  'stock-settings':  (p) => readStockSettings(),
 };
 
 async function getFromCache(collection, params = {}) {
@@ -184,8 +238,8 @@ function sendJson(req, res, data) {
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
-const PROTECTED = new Set(['tarif-lines', 'clients', 'orders', 'commandes']);
-const ADMIN_ONLY = new Set(['clients']);
+const PROTECTED = new Set(['tarif-lines', 'clients', 'orders', 'commandes', 'groupes-contact', 'tarif-grids', 'pro-requests']);
+const ADMIN_ONLY = new Set(['clients', 'orders', 'groupes-contact', 'tarif-grids', 'pro-requests']);
 
 async function verifyIdToken(req) {
   const auth = req.headers['authorization'] || '';
@@ -229,8 +283,8 @@ const handler = onRequest(
     try {
       const decoded = await verifyIdToken(req);
       if (ADMIN_ONLY.has(col)) {
-        const userDoc = await db().collection('clients').where('uid', '==', decoded.uid).limit(1).get();
-        const isAdmin = !userDoc.empty && userDoc.docs[0].data().role === 'admin';
+        const userDoc = await db().collection('users').doc(decoded.uid).get();
+        const isAdmin = userDoc.exists && userDoc.data().role === 'admin';
         if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
       }
     } catch {

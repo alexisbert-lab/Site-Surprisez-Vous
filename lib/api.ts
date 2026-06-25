@@ -4,9 +4,15 @@ import type { Category } from './firestore/categories';
 import type { StatCategory } from './firestore/stat-categories';
 import type { Catalogue } from './firestore/catalogues';
 import type { Marque } from './firestore/marques';
-import type { TarifLine } from './firestore/tarifs';
-import type { Client } from './firestore/clients';
-import type { Commande } from './firestore/orders';
+import type { TarifLine, TarifGrid } from './firestore/tarifs';
+import type { Client, ProRequest } from './firestore/clients';
+import type { Commande, Order } from './firestore/orders';
+import type { MarketingItem } from './firestore/marketing';
+import type { GroupeContact } from './firestore/groupes-contact';
+import type { ContenuPage } from './firestore/contenu-pages';
+import type { Evenement } from './firestore/evenements';
+import type { Declination } from './firestore/categories';
+import type { StockSettings } from './firestore/settings';
 
 const CF_BASE = process.env.NEXT_PUBLIC_CACHE_CF_URL!;
 
@@ -22,6 +28,14 @@ const TTL: Record<string, number> = {
   orders:             1 * 60 * 1000,
   commandes:          2 * 60 * 1000,
   marques:           30 * 60 * 1000,
+  marketing:         10 * 60 * 1000,
+  'groupes-contact': 15 * 60 * 1000,
+  'contenu-pages':   15 * 60 * 1000,
+  evenements:        15 * 60 * 1000,
+  declinations:      30 * 60 * 1000,
+  'tarif-grids':     15 * 60 * 1000,
+  'pro-requests':     1 * 60 * 1000,
+  'stock-settings':  30 * 60 * 1000,
 };
 
 async function fetchCollection<T>(
@@ -67,6 +81,15 @@ export const api = {
   getTarifLines:     (gridId: string, idToken: string) => fetchCollection<TarifLine[]>('tarif-lines', { gridId }, idToken),
   getClients:        (idToken: string) => fetchCollection<Client[]>('clients', undefined, idToken),
   getCommandes:      (cltId: string, idToken: string) => fetchCollection<Commande[]>('commandes', { cltId }, idToken),
+  getOrders:         (idToken: string) => fetchCollection<Order[]>('orders', undefined, idToken),
+  getGroupesContact: (idToken: string) => fetchCollection<GroupeContact[]>('groupes-contact', undefined, idToken),
+  getTarifGrids:     (idToken: string) => fetchCollection<TarifGrid[]>('tarif-grids', undefined, idToken),
+  getProRequests:    (idToken: string) => fetchCollection<ProRequest[]>('pro-requests', undefined, idToken),
+  getMarketing:      () => fetchCollection<MarketingItem[]>('marketing'),
+  getEvenements:     () => fetchCollection<Evenement[]>('evenements'),
+  getDeclinations:   () => fetchCollection<Declination[]>('declinations'),
+  getContenuPages:   () => fetchCollection<ContenuPage[]>('contenu-pages'),
+  getStockSettings:  () => fetchCollection<StockSettings>('stock-settings'),
 
   invalidate: (collection: string) => {
     if (!CF_BASE) return Promise.resolve();

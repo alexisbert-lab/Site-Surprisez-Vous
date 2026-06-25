@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getClients, type Client } from '@/lib/firestore/clients';
+import { type Client } from '@/lib/firestore/clients';
 import { setRevendeurCoords, geocodePostalCode } from '@/lib/firestore/revendeurs';
-import { cachedFetch, invalidateAdminCache } from '@/lib/admin-cache';
+import { api } from '@/lib/api';
+import { invalidateCached } from '@/lib/client-cache';
+import { useAuth } from '@/lib/auth-context';
 
 export default function AdminRevendeursPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -12,10 +14,12 @@ export default function AdminRevendeursPage() {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchDone, setBatchDone] = useState(0);
   const [batchTotal, setBatchTotal] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
-    cachedFetch('crm-clients', () => getClients()).then(setClients).catch(() => {});
-  }, []);
+    if (!user) return;
+    user.getIdToken().then((t) => api.getClients(t)).then(setClients).catch(() => {});
+  }, [user]);
 
   const filtered = useMemo(() => {
     let base = filter === 'no_coords'
@@ -59,7 +63,8 @@ export default function AdminRevendeursPage() {
       done++;
       setBatchDone(done);
     }
-    invalidateAdminCache('crm-clients');
+    invalidateCached('clients');
+    api.invalidate('clients').catch(() => {});
     setBatchLoading(false);
   };
 
