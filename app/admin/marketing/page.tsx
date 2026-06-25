@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getMarketingItems, saveMarketingItem, deleteMarketingItem, type MarketingItem, type MarketingType } from '@/lib/firestore/marketing';
-import { getProducts, filterArticlesVisibles, type Product } from '@/lib/firestore/products';
-import { cachedFetch, invalidateAdminCache } from '@/lib/admin-cache';
+import { saveMarketingItem, deleteMarketingItem, type MarketingItem, type MarketingType } from '@/lib/firestore/marketing';
+import { filterArticlesVisibles, type Product } from '@/lib/firestore/products';
+import { api } from '@/lib/api';
+import { invalidateCached } from '@/lib/client-cache';
 import Badge from '@/components/ui/Badge';
 import Modal, { ModalTitle, ModalActions } from '@/components/ui/Modal';
 import { btnPrimSm, btnSecSm, btnDangerSm, inputSm, cardClass } from '@/lib/admin-styles';
@@ -26,12 +27,17 @@ export default function AdminMarketingPage() {
 
   useEffect(() => {
     Promise.all([
-      cachedFetch('admin:marketing-items', getMarketingItems),
-      cachedFetch('admin:products', getProducts),
+      api.getMarketing(),
+      api.getProducts(),
     ])
       .then(([m, p]) => { setItems(m); setProducts(filterArticlesVisibles(p)); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  const bustMarketing = () => {
+    invalidateCached('marketing');
+    api.invalidate('marketing').catch(() => {});
+  };
 
   const tabItems = useMemo(() => items.filter((i) => i.type === activeTab).sort((a, b) => a.ordre - b.ordre), [items, activeTab]);
 
@@ -55,7 +61,7 @@ export default function AdminMarketingPage() {
       date_fin: form.date_fin || undefined,
     };
     const id = await saveMarketingItem(item);
-    invalidateAdminCache('admin:marketing-items');
+    bustMarketing();
     setItems((prev) => [...prev, { ...item, id }]);
     setShowModal(false);
     setSelectedProd(null);
@@ -66,13 +72,14 @@ export default function AdminMarketingPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Retirer cet article ?')) return;
     await deleteMarketingItem(id);
-    invalidateAdminCache('admin:marketing-items');
+    bustMarketing();
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
   const handleToggle = async (item: MarketingItem) => {
     const updated = { ...item, actif: !item.actif };
     await saveMarketingItem(updated);
+    bustMarketing();
     setItems((prev) => prev.map((i) => i.id === item.id ? updated : i));
   };
 
@@ -85,6 +92,7 @@ export default function AdminMarketingPage() {
     const a = { ...sorted[idx], ordre: sorted[swapIdx].ordre };
     const b = { ...sorted[swapIdx], ordre: sorted[idx].ordre };
     await Promise.all([saveMarketingItem(a), saveMarketingItem(b)]);
+    bustMarketing();
     setItems((prev) => prev.map((i) => {
       if (i.id === a.id) return a;
       if (i.id === b.id) return b;

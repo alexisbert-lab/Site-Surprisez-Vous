@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getOrders, type Order } from '@/lib/firestore/orders';
-import { getProducts, type Product } from '@/lib/firestore/products';
-import { getClients, type Client } from '@/lib/firestore/clients';
+import { type Order } from '@/lib/firestore/orders';
+import { type Product } from '@/lib/firestore/products';
+import { type Client } from '@/lib/firestore/clients';
 import { cardClass } from '@/lib/admin-styles';
-import { cachedFetch } from '@/lib/admin-cache';
+import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
 type Period = 'month' | '3months' | 'year' | 'last_year';
 
@@ -21,16 +22,18 @@ export default function AdminStatistiquesPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>('year');
+  const { user } = useAuth();
 
   useEffect(() => {
-    Promise.all([
-      cachedFetch('orders', getOrders),
-      cachedFetch('products', getProducts),
-      cachedFetch('clients', getClients),
-    ])
+    if (!user) return;
+    user.getIdToken().then((t) => Promise.all([
+      api.getOrders(t),
+      api.getProducts(),
+      api.getClients(t),
+    ]))
       .then(([o, p, c]) => { setOrders(o); setProducts(p); setClients(c); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const now = new Date();
   const filteredOrders = useMemo(() => {

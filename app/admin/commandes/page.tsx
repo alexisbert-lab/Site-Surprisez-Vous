@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getOrders, updateOrderStatus, type Order } from '@/lib/firestore/orders';
-import { cachedFetch, invalidateAdminCache } from '@/lib/admin-cache';
+import { updateOrderStatus, type Order } from '@/lib/firestore/orders';
+import { api } from '@/lib/api';
+import { invalidateCached } from '@/lib/client-cache';
+import { useAuth } from '@/lib/auth-context';
 import { statusBadge } from '@/components/ui/Badge';
 import Modal, { ModalTitle, ModalSubtitle, ModalActions } from '@/components/ui/Modal';
 import { thClass, tdClass, btnPrimSm, btnSecSm, btnDangerSm, selectClass } from '@/lib/admin-styles';
@@ -20,8 +22,12 @@ export default function AdminCommandesPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [modalOrder, setModalOrder] = useState<Order | null>(null);
+  const { user } = useAuth();
 
-  useEffect(() => { cachedFetch('orders', () => getOrders()).then(setOrders).catch(() => {}); }, []);
+  useEffect(() => {
+    if (!user) return;
+    user.getIdToken().then((t) => api.getOrders(t)).then(setOrders).catch(() => {});
+  }, [user]);
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
@@ -42,7 +48,8 @@ export default function AdminCommandesPage() {
   const handleStatusChange = async (orderId: string, newStatus: Order['statut']) => {
     const order = orders.find((o) => o.id === orderId);
     await updateOrderStatus(orderId, newStatus, order?.clientEmail);
-    invalidateAdminCache('orders');
+    invalidateCached('orders');
+    api.invalidate('orders').catch(() => {});
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, statut: newStatus } : o)));
   };
 

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getTarifGrids, getTarifLines, type TarifGrid, type TarifLine } from '@/lib/firestore/tarifs';
-import { getProducts, type Product } from '@/lib/firestore/products';
+import { type TarifGrid, type TarifLine } from '@/lib/firestore/tarifs';
+import { type Product } from '@/lib/firestore/products';
+import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { thClass, tdClass, btnPrimSm, btnSecSm, inputSm, selectClass } from '@/lib/admin-styles';
 
 export default function AdminTarifsPage() {
@@ -15,32 +17,38 @@ export default function AdminTarifsPage() {
   const [loadingGrids, setLoadingGrids] = useState(true);
   const [loadingLines, setLoadingLines] = useState(false);
   const [search, setSearch] = useState('');
+  const { user } = useAuth();
 
   // Chargement initial des grilles et des produits
   useEffect(() => {
-    Promise.all([getTarifGrids(), getProducts()])
+    if (!user) return;
+    user.getIdToken()
+      .then((t) => Promise.all([api.getTarifGrids(t), api.getProducts()]))
       .then(([g, p]) => {
         setGrids(g.sort((a, b) => a.nom.localeCompare(b.nom)));
         setProducts(p);
         if (g.length > 0) setSelectedGridId(g[0].id);
       })
       .finally(() => setLoadingGrids(false));
-  }, []);
+  }, [user]);
 
   // Chargement des lignes de la grille sélectionnée
   useEffect(() => {
-    if (!selectedGridId) return;
+    if (!selectedGridId || !user) return;
     setLoadingLines(true);
-    getTarifLines(selectedGridId)
+    user.getIdToken()
+      .then((t) => api.getTarifLines(selectedGridId, t))
       .then(setLines)
       .finally(() => setLoadingLines(false));
-  }, [selectedGridId]);
+  }, [selectedGridId, user]);
 
   // Chargement des lignes de la grille de comparaison
   useEffect(() => {
-    if (!compareGridId) { setCompareLines(new Map()); return; }
-    getTarifLines(compareGridId).then((l) => setCompareLines(new Map(l.map((x) => [x.ref, x]))));
-  }, [compareGridId]);
+    if (!compareGridId || !user) { setCompareLines(new Map()); return; }
+    user.getIdToken()
+      .then((t) => api.getTarifLines(compareGridId, t))
+      .then((l) => setCompareLines(new Map(l.map((x) => [x.ref, x]))));
+  }, [compareGridId, user]);
 
   const productMap = useMemo(() => new Map(products.map((p) => [p.pdt_reference, p])), [products]);
 
