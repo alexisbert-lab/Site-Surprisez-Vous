@@ -9,8 +9,8 @@ import { getClients, type Client } from './firestore/clients';
 import { getCatalogues, type Catalogue } from './firestore/catalogues';
 import type { RevendeurResult } from './firestore/revendeurs';
 import {
-  getThemeColors, getHeaderSettings, getFooterSettings,
-  type ThemeColors, type HeaderSettings, type FooterSettings,
+  getThemeColors, getHeaderSettings, getFooterSettings, getCatalogueSettings,
+  type ThemeColors, type HeaderSettings, type FooterSettings, type CatalogueSettings,
 } from './firestore/site-settings';
 import { getPageContent } from './firestore/page-content';
 import { getMarques, getProductMarques, type Marque } from './firestore/marques';
@@ -219,6 +219,12 @@ export const getCachedHeaderSettings = unstable_cache(
 export const getCachedFooterSettings = unstable_cache(
   async (): Promise<FooterSettings> => getFooterSettings(),
   ['footer-settings'],
+  CACHE_OPTS(['site-settings'])
+);
+
+export const getCachedCatalogueSettings = unstable_cache(
+  async (): Promise<CatalogueSettings> => getCatalogueSettings(),
+  ['catalogue-settings'],
   CACHE_OPTS(['site-settings'])
 );
 

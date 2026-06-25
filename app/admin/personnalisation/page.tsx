@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   getThemeColors, saveThemeColors, DEFAULT_COLORS, type ThemeColors,
+  getCatalogueSettings, saveCatalogueSettings, DEFAULT_CATALOGUE, type CatalogueSettings,
 } from '@/lib/firestore/site-settings';
+import { getFirebaseStorage } from '@/lib/firebase';
 import { useSiteTheme } from '@/lib/site-theme-context';
-import { btnPrimSm, btnSecSm, cardClass } from '@/lib/admin-styles';
+import { btnPrimSm, btnSecSm, cardClass, inputSm } from '@/lib/admin-styles';
+import { FileText, Upload, X } from 'lucide-react';
 
 export default function PersonnalisationPage() {
   const { refresh } = useSiteTheme();
@@ -13,12 +17,42 @@ export default function PersonnalisationPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [colors, setColors] = useState<ThemeColors>(DEFAULT_COLORS);
+  const [catalogue, setCatalogue] = useState<CatalogueSettings>(DEFAULT_CATALOGUE);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [savingCat, setSavingCat] = useState(false);
+  const [savedCat, setSavedCat] = useState(false);
 
   useEffect(() => {
-    getThemeColors().then((c) => { setColors(c); setLoading(false); });
+    Promise.all([getThemeColors(), getCatalogueSettings()]).then(([c, cat]) => {
+      setColors(c);
+      setCatalogue(cat);
+      setLoading(false);
+    });
   }, []);
 
   const flash = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+
+  const handlePdfUpload = async (file: File) => {
+    setUploadingPdf(true);
+    try {
+      const storage = getFirebaseStorage();
+      const sRef = storageRef(storage, `catalogue/catalogue_${Date.now()}_${file.name}`);
+      const snap = await uploadBytes(sRef, file);
+      const url = await getDownloadURL(snap.ref);
+      setCatalogue((c) => ({ ...c, pdf_url: url, pdf_filename: file.name }));
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handleSaveCatalogue = async () => {
+    setSavingCat(true);
+    await saveCatalogueSettings(catalogue);
+    await fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: ['site-settings'] }) });
+    setSavingCat(false);
+    setSavedCat(true);
+    setTimeout(() => setSavedCat(false), 2000);
+  };
 
   const handleSaveColors = async () => {
     setSaving(true);
@@ -166,6 +200,71 @@ export default function PersonnalisationPage() {
           <button className={btnSecSm} onClick={() => setColors(DEFAULT_COLORS)}>
             Réinitialiser
           </button>
+        </div>
+
+        {/* Catalogue téléchargeable */}
+        <div className={cardClass}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-ink">Catalogue téléchargeable</h2>
+            {savedCat && <span className="text-green-600 text-sm font-semibold">✓ Sauvegardé</span>}
+          </div>
+          <p className="text-xs text-ink-secondary mb-4">
+            PDF proposé au téléchargement dans le catalogue pro. Le lien Calaméo (feuilletage) est optionnel et pourra être activé plus tard.
+          </p>
+
+          <div className="space-y-4">
+            {/* PDF */}
+            <div className="p-3 border border-border rounded-xl">
+              <div className="text-sm font-semibold text-ink mb-2">Fichier PDF</div>
+              {catalogue.pdf_url ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <FileText className="w-4 h-4 text-sv-primary shrink-0" />
+                  <a href={catalogue.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sv-primary hover:underline truncate flex-1">
+                    {catalogue.pdf_filename || 'catalogue.pdf'}
+                  </a>
+                  <button
+                    onClick={() => setCatalogue((c) => ({ ...c, pdf_url: '', pdf_filename: '' }))}
+                    className="p-1 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer"
+                    title="Retirer le PDF"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-ink-secondary italic">Aucun PDF chargé.</p>
+              )}
+              <label className={`${btnSecSm} inline-flex items-center gap-1.5 mt-3 ${uploadingPdf ? 'opacity-60 pointer-events-none' : ''}`}>
+                <Upload className="w-4 h-4" />
+                {uploadingPdf ? 'Chargement...' : (catalogue.pdf_url ? 'Remplacer le PDF' : 'Charger un PDF')}
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  disabled={uploadingPdf}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); e.target.value = ''; }}
+                />
+              </label>
+            </div>
+
+            {/* Calaméo (optionnel) */}
+            <div className="p-3 border border-border rounded-xl">
+              <div className="text-sm font-semibold text-ink mb-1">Lien Calaméo (optionnel)</div>
+              <div className="text-xs text-ink-secondary mb-2">URL de la publication Calaméo, pour le feuilletage en ligne.</div>
+              <input
+                type="url"
+                value={catalogue.calameo_url}
+                onChange={(e) => setCatalogue((c) => ({ ...c, calameo_url: e.target.value }))}
+                placeholder="https://www.calameo.com/read/..."
+                className={inputSm + ' w-full'}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <button className={btnPrimSm} onClick={handleSaveCatalogue} disabled={savingCat || uploadingPdf}>
+              {savingCat ? 'Sauvegarde...' : 'Enregistrer le catalogue'}
+            </button>
+          </div>
         </div>
       </div>
     </>
