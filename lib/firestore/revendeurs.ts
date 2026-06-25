@@ -21,7 +21,7 @@ export async function getActiveRevendeurs(): Promise<RevendeurResult[]> {
   const results: RevendeurResult[] = [];
   snap.forEach((d) => {
     const c = { id: d.id, ...d.data() } as Client;
-    if (c.revendeur?.lat && c.revendeur?.lng) {
+    if (c.statut === 'Valide' && c.revendeur?.lat && c.revendeur?.lng) {
       results.push({
         id: c.id,
         nom: c.enseigne || c.raison_soc,
@@ -48,7 +48,28 @@ export async function setRevendeurCoords(
   });
 }
 
-/** Geocode a French postal code → { lat, lng } via api-adresse.data.gouv.fr */
+/** Geocode a full address (num+rue+cp+ville) → { lat, lng } via api-adresse.data.gouv.fr */
+export async function geocodeAddress(
+  adresse: string,
+  cp: string,
+  ville: string
+): Promise<{ lat: number; lng: number } | null> {
+  const query = [adresse, cp, ville].map((s) => (s || '').trim()).filter(Boolean).join(' ');
+  if (!query) return null;
+  try {
+    const params = new URLSearchParams({ q: query, limit: '1' });
+    if (cp.trim()) params.set('postcode', cp.trim());
+    const res = await fetch(`https://api-adresse.data.gouv.fr/search/?${params.toString()}`);
+    const data = await res.json();
+    const coords = data?.features?.[0]?.geometry?.coordinates;
+    if (!coords) return null;
+    return { lat: coords[1], lng: coords[0] };
+  } catch {
+    return null;
+  }
+}
+
+/** Geocode a French postal code → { lat, lng } via api-adresse.data.gouv.fr (fallback commune) */
 export async function geocodePostalCode(cp: string): Promise<{ lat: number; lng: number } | null> {
   try {
     const res = await fetch(
