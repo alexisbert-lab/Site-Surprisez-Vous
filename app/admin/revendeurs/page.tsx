@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { type Client } from '@/lib/firestore/clients';
-import { setRevendeurCoords, geocodePostalCode } from '@/lib/firestore/revendeurs';
+import { setRevendeurCoords, geocodeAddress, geocodePostalCode } from '@/lib/firestore/revendeurs';
 import { api } from '@/lib/api';
 import { invalidateCached } from '@/lib/client-cache';
 import { useAuth } from '@/lib/auth-context';
@@ -37,19 +37,21 @@ export default function AdminRevendeursPage() {
   }, [clients, search, filter]);
 
   const noCoordCount = useMemo(
-    () => clients.filter((c) => c.cp && !c.revendeur?.lat).length,
+    () => clients.filter((c) => (c.adr || c.cp) && !c.revendeur?.lat).length,
     [clients]
   );
 
   const handleBatchGeocode = async () => {
-    const missing = clients.filter((c) => c.cp && !c.revendeur?.lat);
+    const missing = clients.filter((c) => (c.adr || c.cp) && !c.revendeur?.lat);
     if (missing.length === 0) return;
     setBatchLoading(true);
     setBatchDone(0);
     setBatchTotal(missing.length);
     let done = 0;
     for (const client of missing) {
-      const coords = await geocodePostalCode(client.cp!);
+      // Adresse complète d'abord (pin précis), repli sur le CP seul (niveau commune).
+      let coords = await geocodeAddress(client.adr || '', client.cp || '', client.ville || '');
+      if (!coords && client.cp) coords = await geocodePostalCode(client.cp);
       if (coords) {
         await setRevendeurCoords(client.id, coords.lat, coords.lng);
         setClients((prev) =>
@@ -149,7 +151,7 @@ export default function AdminRevendeursPage() {
                   </span>
                 ) : (
                   <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    {client.cp ? 'Non géolocalisé' : 'Pas de CP'}
+                    {(client.adr || client.cp) ? 'Non géolocalisé' : 'Pas d\'adresse'}
                   </span>
                 )}
               </div>

@@ -228,8 +228,29 @@ function filtrerArticlesVisibles(products) {
 }
 
 /**
+ * Répare le mojibake classique (texte UTF-8 relu en Latin-1) : "SystÃ¨me" → "Système".
+ * Ne touche qu'aux chaînes contenant une séquence typique pour ne pas abîmer le texte sain.
+ */
+function fixMojibake(str) {
+  if (typeof str !== "string") return str;
+  let suspect = false;
+  for (let i = 0; i < str.length - 1; i++) {
+    const c = str.charCodeAt(i);
+    const n = str.charCodeAt(i + 1);
+    if ((c === 0xc3 || c === 0xc2) && n >= 0x80 && n <= 0xbf) { suspect = true; break; }
+  }
+  if (!suspect) return str;
+  try {
+    const repaired = Buffer.from(str, "latin1").toString("utf8");
+    return repaired.includes("�") ? str : repaired;
+  } catch {
+    return str;
+  }
+}
+
+/**
  * Lit un fichier CSV depuis Google Drive et retourne un tableau d'objets.
- * Gère automatiquement le séparateur (; ou ,) et le trim des valeurs.
+ * Gère automatiquement le séparateur (; ou ,), le trim et la réparation d'encodage.
  */
 async function lireCsvDrive(fileId) {
   const response = await drive.files.get(
@@ -243,7 +264,7 @@ async function lireCsvDrive(fileId) {
     skipEmptyLines: true,
     dynamicTyping: false,
     transformHeader: (h) => h.trim(),
-    transform: (value) => (typeof value === "string" ? value.trim() : value),
+    transform: (value) => (typeof value === "string" ? fixMojibake(value.trim()) : value),
   });
 
   if (parsed.errors.length > 0) {
@@ -702,55 +723,182 @@ const CLIENT_SYNC_FIELDS = [
   "email", "tel", "fax", "nom_gerant", "prenom_gerant",
   "nom_ach", "prenom_ach", "adr", "cp", "ville", "pays",
   "profil_id", "groupe_contact_id", "commentaire", "raison_desactive",
-  "login", "motdepasse", "statut",
+  "statut",
 ];
 
-// ===== Sync Clients_Final.csv -> collection "clients" =====
+// Champs comparés pour le format ERP natif (CLT_*) : on retire profil_id et groupe_contact_id,
+// absents du CSV et posés en back-office -> merge:true doit les préserver.
+const CLIENT_ERP_SYNC_FIELDS = CLIENT_SYNC_FIELDS.filter(
+  (f) => f !== "profil_id" && f !== "groupe_contact_id"
+);
+
+// Normalise un n° de téléphone français dont le 0 initial a sauté (export en numérique).
+function normalizeTelFr(value) {
+  const s = (value || "").toString().trim();
+  return /^\d{9}$/.test(s) ? "0" + s : s;
+}
+
+// Charge les jointures adresses (CAL) + contacts (CCT) depuis le dossier Drive.
+async function chargerJointuresClients() {
+  const fichiers = await listerFichiersDossier(DRIVE_FOLDER_ID);
+  const trouver = (nom) => fichiers.find((f) => f.name === nom);
+
+  const adresseParCalId = new Map();
+  const fAdr = trouver("EXP_ADRESSES_1165.CSV");
+  if (fAdr) {
+    for (const r of await lireCsvDrive(fAdr.id)) {
+      const calId = (r.CAL_CAL_ID || "").toString().trim();
+      if (!calId) continue;
+      const adr = [r.CAL_CAL_ADR_ADR_VOIE_NUM, r.CAL_CAL_ADR_ADR_VOIE_TYPE, r.CAL_CAL_ADR_ADR_VOIE_LIBELLE]
+        .map((v) => (v || "").toString().trim()).filter(Boolean).join(" ");
+      adresseParCalId.set(calId, {
+        adr,
+        cp: (r.CAL_CAL_ADR_ADR_CODE_POSTAL || "").toString().trim(),
+        ville: (r.CAL_CAL_ADR_ADR_COMMUNE || "").toString().trim(),
+        pays: (r.CAL_CAL_ADR_ADR_PAYS || "").toString().trim(),
+        lat: (r.CAL_CAL_ADR_ADR_LATITUDE || "").toString().trim(),
+        lng: (r.CAL_CAL_ADR_ADR_LONGITUDE || "").toString().trim(),
+      });
+    }
+  }
+
+  const contactParCctId = new Map();
+  const contactsParClient = new Map();
+  const fCct = trouver("EXP_CONTACTS_1165.CSV");
+  if (fCct) {
+    for (const r of await lireCsvDrive(fCct.id)) {
+      const c = {
+        nom: (r.CCT_CCT_CONTACT_CTT_NOM || "").toString().trim(),
+        prenom: (r.CCT_CCT_CONTACT_CTT_PRENOM || "").toString().trim(),
+        tel: normalizeTelFr(r.CCT_CCT_CONTACT_CTT_TEL),
+        portable: normalizeTelFr(r.CCT_CCT_CONTACT_CTT_PORTABLE),
+        fax: normalizeTelFr(r.CCT_CCT_CONTACT_CTT_FAX),
+        email: (r.CCT_CCT_CONTACT_CTT_EMAIL || "").toString().trim(),
+        gestion: (r.CCT_CCT_GESTION || "").toString().trim() === "1",
+        achat: (r.CCT_CCT_ACHAT || "").toString().trim() === "1",
+      };
+      const cctId = (r.CCT_CCT_ID || "").toString().trim();
+      const cltId = (r.CCT_CCT_CLT_ID || "").toString().trim();
+      if (cctId) contactParCctId.set(cctId, c);
+      if (cltId) {
+        if (!contactsParClient.has(cltId)) contactsParClient.set(cltId, []);
+        contactsParClient.get(cltId).push(c);
+      }
+    }
+  }
+
+  return { adresseParCalId, contactParCctId, contactsParClient };
+}
+
+// Mappe une ligne du format ERP natif (CLT_*) vers une fiche client, jointures CAL + CCT incluses.
+function mapClientErp(row, joints) {
+  const id = (row.CLT_CLT_ID || "").toString().trim();
+  if (!id) return null;
+
+  // Exclut les comptes internes ERP (A = interne, TIC = ticket/devis) : pas des revendeurs.
+  const type = (row.CLT_CLT_TYPE || "").toString().trim().toUpperCase();
+  if (type === "A" || type === "TIC") return null;
+
+  const calId = (row.CLT_CLT_ADR_SOC_CAL_ID || "").toString().trim();
+  const cctId = (row.CLT_CLT_CONTACT_COM_CCT_ID || "").toString().trim();
+  const adresse = joints.adresseParCalId.get(calId) || {};
+  const contactsClient = joints.contactsParClient.get(id) || [];
+  const principal = joints.contactParCctId.get(cctId) || {};
+
+  const gerant = contactsClient.find((c) => c.gestion) || {};
+  const acheteur = contactsClient.find((c) => c.achat) || principal;
+  // Contact de référence (tél/fax) : le contact commercial lié, sinon l'acheteur.
+  const ref = (principal.nom || principal.email || principal.tel) ? principal : acheteur;
+
+  const etat = (row.CLT_CLT_ETAT_ID || "").toString().trim().toUpperCase();
+  const actif = etat === "" || etat === "O";
+
+  const incoming = {
+    erp_id: id,
+    raison_soc: (row.CLT_CLT_REFERENCE || "").toString().trim(),
+    enseigne: (row.CLT_CLT_NOM || "").toString().trim(),
+    siret: (row.CLT_CLT_SOC_SIRET || "").toString().trim(),
+    num_tva: (row.CLT_CLT_SOC_TVA_INTRACOM || "").toString().trim(),
+    tpe_client: (row.CLT_CLT_TYPE || "").toString().trim(),
+    email: (principal.email || acheteur.email || gerant.email || row.CLT_CLT_COM_AR_EMAIL || "").toString().trim(),
+    tel: ref.tel || ref.portable || "",
+    fax: ref.fax || "",
+    nom_gerant: gerant.nom || "",
+    prenom_gerant: gerant.prenom || "",
+    nom_ach: acheteur.nom || "",
+    prenom_ach: acheteur.prenom || "",
+    adr: adresse.adr || "",
+    cp: adresse.cp || "",
+    ville: adresse.ville || "",
+    pays: adresse.pays || "",
+    commentaire: (row.CLT_CLT_COM_NOTES_CONSULTABLE || "").toString().trim(),
+    raison_desactive: actif ? "" : etat,
+    statut: actif ? "Valide" : "Refuse",
+  };
+
+  // Bonus carte revendeurs : lat/lng (merge profond -> n'écrase pas le reste de `revendeur`).
+  if (adresse.lat || adresse.lng) {
+    incoming.revendeur = { lat: adresse.lat, lng: adresse.lng };
+  }
+
+  return incoming;
+}
+
+// Mappe une ligne de l'ancien format à noms conviviaux (Clients_Final.csv).
+function mapClientAncien(row) {
+  const id = (row.clientid || "").toString().trim();
+  if (!id) return null;
+  return {
+    erp_id: id,
+    raison_soc: (row.raison_soc || "").toString().trim(),
+    enseigne: (row.enseigne || "").toString().trim(),
+    siret: (row.siret || "").toString().trim(),
+    num_tva: (row.numtva || "").toString().trim(),
+    tpe_client: (row.tpe_client || "").toString().trim(),
+    email: (row.email || "").toString().trim(),
+    tel: (row.tel || "").toString().trim(),
+    fax: (row.fax || "").toString().trim(),
+    nom_gerant: (row.nom_gerant || "").toString().trim(),
+    prenom_gerant: (row.prenom_gerant || "").toString().trim(),
+    nom_ach: (row.nom_ach || "").toString().trim(),
+    prenom_ach: (row.prenom_ach || "").toString().trim(),
+    adr: (row.adr || "").toString().trim(),
+    cp: (row.cp || "").toString().trim(),
+    ville: (row.ville || "").toString().trim(),
+    pays: (row.pays || "").toString().trim(),
+    profil_id: (row.profilid || "").toString().trim(),
+    groupe_contact_id: (row.grpconid || "").toString().trim(),
+    commentaire: (row.commentaire || "").toString().trim(),
+    raison_desactive: (row.raison_desactive || "").toString().trim(),
+    statut: row.raison_desactive ? "Refuse" : "Valide",
+  };
+}
+
+// ===== Sync clients : EXP_CLIENTS_1165.CSV (format CLT_* + jointures) ou ancien Clients_Final.csv =====
 async function syncClientsCsv(rows) {
   if (!Array.isArray(rows) || rows.length === 0) {
-    throw new Error("Clients_Final.csv est vide ou invalide.");
+    throw new Error("Fichier clients vide ou invalide.");
   }
+
+  const estFormatErp = Object.prototype.hasOwnProperty.call(rows[0], "CLT_CLT_ID");
+  let incomingList;
+  if (estFormatErp) {
+    const joints = await chargerJointuresClients();
+    incomingList = rows.map((r) => mapClientErp(r, joints)).filter(Boolean);
+  } else {
+    incomingList = rows.map(mapClientAncien).filter(Boolean);
+  }
+  const champs = estFormatErp ? CLIENT_ERP_SYNC_FIELDS : CLIENT_SYNC_FIELDS;
 
   const existingMap = await fetchCacheMap("clients", "id");
   let batch = db.batch();
   let ops = 0, nouveau = 0, modifie = 0, inchange = 0;
   const changedClients = [];
 
-  for (const row of rows) {
-    const id = (row.clientid || "").toString().trim();
-    if (!id) continue;
-
-    const statut = row.raison_desactive ? "Refuse" : "Valide";
-
-    const incoming = {
-      erp_id: id,
-      raison_soc: (row.raison_soc || "").toString().trim(),
-      enseigne: (row.enseigne || "").toString().trim(),
-      siret: (row.siret || "").toString().trim(),
-      num_tva: (row.numtva || "").toString().trim(),
-      tpe_client: (row.tpe_client || "").toString().trim(),
-      email: (row.email || "").toString().trim(),
-      tel: (row.tel || "").toString().trim(),
-      fax: (row.fax || "").toString().trim(),
-      nom_gerant: (row.nom_gerant || "").toString().trim(),
-      prenom_gerant: (row.prenom_gerant || "").toString().trim(),
-      nom_ach: (row.nom_ach || "").toString().trim(),
-      prenom_ach: (row.prenom_ach || "").toString().trim(),
-      adr: (row.adr || "").toString().trim(),
-      cp: (row.cp || "").toString().trim(),
-      ville: (row.ville || "").toString().trim(),
-      pays: (row.pays || "").toString().trim(),
-      profil_id: (row.profilid || "").toString().trim(),
-      groupe_contact_id: (row.grpconid || "").toString().trim(),
-      commentaire: (row.commentaire || "").toString().trim(),
-      raison_desactive: (row.raison_desactive || "").toString().trim(),
-      login: (row.login || "").toString().trim(),
-      motdepasse: (row.motdepasse || "").toString().trim(),
-      statut,
-    };
-
+  for (const incoming of incomingList) {
+    const id = incoming.erp_id;
     const existing = existingMap.get(id);
-    if (!fieldsChanged(existing, incoming, CLIENT_SYNC_FIELDS)) { inchange++; continue; }
+    if (!fieldsChanged(existing, incoming, champs)) { inchange++; continue; }
 
     batch.set(db.collection("clients").doc(id), { ...incoming, derniere_sync: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     changedClients.push({ id, ...incoming });
@@ -948,6 +1096,11 @@ const FICHIERS_SYNC = {
     const result = await syncClientsCsv(rows);
     return { collection: "clients", ...result };
   },
+
+  // Adresses (CAL) et Contacts (CCT) : pas de collection propre, ils sont lus en jointure
+  // par syncClientsCsv directement depuis le Drive. Handlers no-op pour ne pas les voir "ignorés".
+  "EXP_ADRESSES_1165.CSV": async () => ({ collection: "clients", note: "jointure adresses (fusionnée dans la sync clients)" }),
+  "EXP_CONTACTS_1165.CSV": async () => ({ collection: "clients", note: "jointure contacts (fusionnée dans la sync clients)" }),
 
   "EXP_COLISAGE_1165.CSV": async (rows) => {
     const existingMap = await fetchCacheMap("products", "pdt_reference", (id) => id.replace(/\//g, "__"));
