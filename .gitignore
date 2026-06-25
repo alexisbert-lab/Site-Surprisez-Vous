@@ -90,3 +90,11 @@ _legacy/
 
 # Firebase service account key (secret)
 serviceAccountKey.json
+
+# Artefacts générés (tests / build) — ne pas versionner
+tsconfig.tsbuildinfo
+test-results/
+playwright-report/
+
+# Données clients (import / seed) — ne jamais versionner
+Clients_Final.csv

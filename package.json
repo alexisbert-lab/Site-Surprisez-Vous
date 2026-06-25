@@ -18,7 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:emulator": "USE_FIREBASE_EMULATOR=true playwright test"
+    "test:e2e:emulator": "cross-env USE_FIREBASE_EMULATOR=true playwright test"
   },
   "dependencies": {
     "@types/canvas-confetti": "^1.9.0",
@@ -46,6 +46,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.2",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "firebase-admin": "^13.8.0",
     "googleapis": "^171.4.0",
