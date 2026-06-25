@@ -1,6 +1,5 @@
-import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { updateDoc, doc } from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase';
-import type { Client } from './clients';
 
 const db = () => getFirebaseDb();
 
@@ -14,27 +13,6 @@ export interface RevendeurResult {
   lat: number;
   lng: number;
   distance?: number;
-}
-
-export async function getActiveRevendeurs(): Promise<RevendeurResult[]> {
-  const snap = await getDocs(collection(db(), 'clients'));
-  const results: RevendeurResult[] = [];
-  snap.forEach((d) => {
-    const c = { id: d.id, ...d.data() } as Client;
-    if (c.statut === 'Valide' && c.revendeur?.lat && c.revendeur?.lng) {
-      results.push({
-        id: c.id,
-        nom: c.enseigne || c.raison_soc,
-        adresse: c.adr || '',
-        ville: c.ville || '',
-        codePostal: c.cp || '',
-        telephone: c.tel || '',
-        lat: c.revendeur.lat,
-        lng: c.revendeur.lng,
-      });
-    }
-  });
-  return results;
 }
 
 export async function setRevendeurCoords(

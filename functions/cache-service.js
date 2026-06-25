@@ -93,10 +93,14 @@ async function readClients() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-async function readRevendeurs() {
-  // Source publique de la carte revendeurs : uniquement les champs vitrine (pas de PII).
+const REVENDEURS_DOC = () => db().collection('settings').doc('revendeurs-cache');
+
+// Reconstruit la liste revendeurs (lecture lourde de tous les clients Valide) et la stocke
+// dans 1 doc. Appele uniquement quand les clients changent (sync / geocodage admin),
+// pas a chaque expiration du cache memoire. Champs vitrine uniquement (pas de PII).
+async function rebuildRevendeurs() {
   const snap = await db().collection('clients').where('statut', '==', 'Valide').get();
-  return snap.docs
+  const items = snap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
     .filter((c) => c.revendeur && c.revendeur.lat && c.revendeur.lng)
     .map((c) => ({
@@ -109,6 +113,15 @@ async function readRevendeurs() {
       lat: c.revendeur.lat,
       lng: c.revendeur.lng,
     }));
+  await REVENDEURS_DOC().set({ items, count: items.length, updatedAt: Date.now() });
+  return items;
+}
+
+// Source publique de la carte : lit le doc precalcule (1 lecture). Auto-reparation si absent.
+async function readRevendeurs() {
+  const doc = await REVENDEURS_DOC().get();
+  if (doc.exists && Array.isArray(doc.data().items)) return doc.data().items;
+  return rebuildRevendeurs();
 }
 
 async function readCommandes(cltId) {
@@ -265,6 +278,11 @@ const handler = onRequest(
     }
     const { collection: col, params } = req.body || {};
     if (!col) return res.status(400).json({ error: 'Missing collection' });
+    // Les revendeurs derivent des clients : on reconstruit le doc precalcule sur tout
+    // changement clients, AVANT d'invalider le cache memoire (evite une course).
+    if (col === 'clients' || col === 'revendeurs') {
+      try { await rebuildRevendeurs(); } catch (e) { console.error('[cache-service] rebuild revendeurs:', e); }
+    }
     invalidate(col, params);
     return res.json({ ok: true, collection: col });
   }
