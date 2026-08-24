@@ -9,7 +9,6 @@ const MARQUES = [
   { nom: 'Fête à DÉCO', bg: '#2B3EA0', color: 'white' },
   { nom: 'Oui pour la vie', bg: '#F5A623', color: '#1A1A2E' },
   { nom: 'Zéro de Conduite', bg: '#3DBDB0', color: 'white' },
-  { nom: 'OptimiZline', bg: '#6B4FA0', color: 'white' },
 ];
 
 const POSTS_INSTAGRAM = [

@@ -9,7 +9,6 @@ const MARQUES = [
   { labelId: 'decouverte_marque2', labelDefault: 'Fête à DÉCO',      color: '#3DBDB0', bg: '#e8f8f7' },
   { labelId: 'decouverte_marque3', labelDefault: 'Oui pour la vie',  color: '#6B4FA0', bg: '#f0edf8' },
   { labelId: 'decouverte_marque4', labelDefault: 'Zéro de Conduite', color: '#2B3EA0', bg: '#eef0fb' },
-  { labelId: 'decouverte_marque5', labelDefault: 'OptimiZline',      color: '#E97132', bg: '#fde8dd' },
 ];
 
 const FEATURES = [
@@ -76,7 +75,7 @@ export function SectionDecouverte() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
             <Reveal dir="left">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {MARQUES.slice(0, 4).map((m, i) => (
+                {MARQUES.map((m, i) => (
                   <Reveal key={m.labelId} dir="scale" delay={i * 0.08}>
                     <div style={{ padding: '12px 16px', borderRadius: 12, background: m.bg, textAlign: 'center' }}>
                       <span style={{ fontSize: 13, fontFamily: 'var(--font-heading)', fontWeight: 800, color: m.color }}>
@@ -85,13 +84,6 @@ export function SectionDecouverte() {
                     </div>
                   </Reveal>
                 ))}
-                <Reveal dir="scale" delay={4 * 0.08} style={{ gridColumn: '1 / -1' }}>
-                  <div style={{ padding: '12px 16px', borderRadius: 12, background: MARQUES[4].bg, textAlign: 'center' }}>
-                    <span style={{ fontSize: 13, fontFamily: 'var(--font-heading)', fontWeight: 800, color: MARQUES[4].color }}>
-                      <EditableText page="home" id={MARQUES[4].labelId}>{MARQUES[4].labelDefault}</EditableText>
-                    </span>
-                  </div>
-                </Reveal>
               </div>
             </Reveal>
             <Reveal dir="right">
@@ -103,7 +95,7 @@ export function SectionDecouverte() {
                     <EditableText page="home" id="decouverte_step2_title">Nos marques exclusives</EditableText>
                   </h3>
                   <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
-                    <EditableText page="home" id="decouverte_step2_desc" multiline>5 gammes développées en exclusivité pour vous offrir des produits uniques, tendance et adaptés à tous les événements.</EditableText>
+                    <EditableText page="home" id="decouverte_step2_desc" multiline>4 gammes développées en exclusivité pour vous offrir des produits uniques, tendance et adaptés à tous les événements.</EditableText>
                   </p>
                 </div>
               </div>

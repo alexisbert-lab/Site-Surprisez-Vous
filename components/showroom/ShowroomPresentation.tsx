@@ -26,14 +26,13 @@ const MARQUES = [
   { nom: 'Fête à DÉCO',     bg: '#2B3EA0', color: '#fff' },
   { nom: 'Oui pour la vie', bg: '#F5A623', color: '#1A1A2E' },
   { nom: 'Zéro de Conduite',bg: '#3DBDB0', color: '#fff' },
-  { nom: 'Fête des Bêtises',bg: '#6B4FA0', color: '#fff' },
 ];
 
 const STATS = [
   { n: 3000, s: '+',    l: 'Références',          c: '#F5A623', dur: 2000 },
   { n: 7000, s: ' m²',  l: 'Entrepôt & Showroom', c: '#E8185A', dur: 2200 },
   { n: 500,  s: '+',    l: 'Clients pro',          c: '#3DBDB0', dur: 1800 },
-  { n: 5,    s: '',     l: 'Marques exclusives',   c: '#6B4FA0', dur: 1200 },
+  { n: 4,    s: '',     l: 'Marques exclusives',   c: '#6B4FA0', dur: 1200 },
 ];
 
 const NOISE_BG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`;
