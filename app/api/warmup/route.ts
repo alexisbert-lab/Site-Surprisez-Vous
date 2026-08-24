@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getCachedProducts, getCachedStatCategories } from '@/lib/server-cache';
 
-// Appelé par le cron Vercel toutes les 5 min pour maintenir les caches chauds.
+// Appelé par la tâche planifiée warmupCache (Cloud Functions), en heures ouvrées.
 export async function GET(req: Request) {
   const secret = new URL(req.url).searchParams.get('secret');
   if (process.env.CACHE_SECRET && secret !== process.env.CACHE_SECRET) {
