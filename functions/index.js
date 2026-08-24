@@ -24,9 +24,7 @@ const authGoogle = new google.auth.GoogleAuth({
 const drive = google.drive({ version: "v3", auth: authGoogle });
 const sheets = google.sheets({ version: "v4", auth: authGoogle });
 
-const JSON_FILE_ID = "127UUwJiYOBNHt1IexnaLXv12jxrn-Ikm";
 const CSV_FILE_ID = "1OVGoPYdmDGhVlsHRiqhkHtzT_OPZp7jM";
-const STATS_CSV_FILE_ID = "1NHYeZwpZ5PWsfEgo8WJ8IgM53W2ejnHL";
 const SPREADSHEET_ID = "1l91znV1PgX-eimQ6EKFexTB0z14rmTtD6ProfCHBodA";
 
 // Dossier Drive contenant les exports ERP quotidiens
@@ -280,46 +278,6 @@ function setCors(res) {
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
-// ===== Lire le catalogue CSV depuis Google Drive =====
-exports.lireMonCsv = functions.https.onRequest(async (req, res) => {
-  setCors(res);
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return;
-  }
-
-  try {
-    const seuil = await getSeuilStockFaible();
-    const rawRows = await lireCsvDrive(CSV_FILE_ID);
-    const mapped = rawRows.map((row) => mapCsvRow(row, seuil));
-    const products = filtrerArticlesVisibles(mapped);
-    res.status(200).json(products);
-  } catch (error) {
-    console.error("Erreur de lecture CSV Drive :", error);
-    res.status(500).send("Impossible de lire le fichier CSV Drive.");
-  }
-});
-
-// ===== (ancien) Lire le catalogue JSON depuis Google Drive =====
-exports.lireMonJson = functions.https.onRequest(async (req, res) => {
-  setCors(res);
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return;
-  }
-
-  try {
-    const response = await drive.files.get({
-      fileId: JSON_FILE_ID,
-      alt: "media",
-    });
-    res.status(200).json(response.data);
-  } catch (error) {
-    console.error("Erreur de lecture Drive :", error);
-    res.status(500).send("Impossible de lire le fichier Drive.");
-  }
-});
-
 // ===== Vérifier les ruptures depuis Google Sheets =====
 exports.verifierRuptures = functions.https.onRequest(async (req, res) => {
   setCors(res);
@@ -450,73 +408,6 @@ async function syncCatalogToFirestore() {
     },
   };
 }
-
-// ===== Sync des codes statistiques depuis Google Drive =====
-function getStatNiveau(code) {
-  if (code.length <= 2) return 1;
-  if (code.length <= 4) return 2;
-  return 3;
-}
-
-function getStatParent(code) {
-  if (code.length <= 2) return null;
-  if (code.length <= 4) return code.slice(0, 2);
-  return code.slice(0, 4);
-}
-
-async function syncStatCategoriesToFirestore() {
-  const rawRows = await lireCsvDrive(STATS_CSV_FILE_ID);
-
-  if (!Array.isArray(rawRows) || rawRows.length === 0) {
-    throw new Error("Le fichier CSV des codes stats est vide ou invalide.");
-  }
-
-  // Pas de lecture préalable : merge:true préserve le champ "actif" existant
-  let batch = db.batch();
-  let count = 0;
-
-  for (const row of rawRows) {
-    const code = (row.CST_CST_ID || "").toString().trim().toUpperCase();
-    const designation = (row.CST_CST_DESIGNATION || "").toString().trim();
-    if (!code) continue;
-
-    const ref = db.collection("stat-categories").doc(code);
-
-    batch.set(ref, {
-      designation,
-      niveau: getStatNiveau(code),
-      parent: getStatParent(code),
-    }, { merge: true });
-    count++;
-
-    if (count % 450 === 0) {
-      await batch.commit();
-      batch = db.batch();
-    }
-  }
-
-  if (count % 450 !== 0) {
-    await batch.commit();
-  }
-
-  return { success: true, synced: count, timestamp: new Date().toISOString() };
-}
-
-exports.syncStatCategories = functions.https.onRequest(async (req, res) => {
-  setCors(res);
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return;
-  }
-
-  try {
-    const result = await syncStatCategoriesToFirestore();
-    res.status(200).json(result);
-  } catch (error) {
-    console.error("Erreur syncStatCategories :", error);
-    res.status(500).send("Erreur lors de la synchronisation des codes stats.");
-  }
-});
 
 // ===== Liste les fichiers CSV d'un dossier Drive (avec date de modification) =====
 async function listerFichiersDossier(folderId) {
@@ -1182,23 +1073,6 @@ async function syncDossierCsvToFirestore() {
   };
 }
 
-// ===== HTTP trigger : debug liste fichiers Drive =====
-exports.debugDriveFolder = functions.https.onRequest(async (req, res) => {
-  setCors(res);
-  if (req.method === "OPTIONS") { res.status(204).send(""); return; }
-  try {
-    const response = await drive.files.list({
-      q: `'${DRIVE_FOLDER_ID}' in parents and trashed = false`,
-      fields: "files(id, name, mimeType)",
-      includeItemsFromAllDrives: true,
-      supportsAllDrives: true,
-    });
-    res.status(200).json({ folderId: DRIVE_FOLDER_ID, files: response.data.files || [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ===== Sync Catalogues (dossier Drive "catalogue/") → Firestore =====
 // ===== Helpers catalogue =====
 
@@ -1697,13 +1571,16 @@ exports.instagramFeed = functions.https.onRequest(async (req, res) => {
   }
 });
 
-// Rafraîchit automatiquement le token Instagram tous les 30 jours.
-// Le token longue durée dure 60 j — on renouvelle à mi-chemin pour ne jamais expirer.
-// ── Warmup toutes les 5 min : maintient Next.js + cacheData chauds ───────────
+// ── Warmup en heures ouvrées : maintient Next.js + cacheData chauds ─────────
+// Volontairement limité : un ping toutes les 5 min 24h/24 empêche l'instance
+// Cloud Run de redescendre à zéro, donc la facture court la nuit et le dimanche.
 exports.warmupCache = onSchedule(
-  { schedule: "*/5 * * * *", timeZone: "Europe/Paris" },
+  { schedule: "*/15 8-19 * * 1-6", timeZone: "Europe/Paris" },
   async () => {
-    if (!NEXTJS_BASE_URL) return;
+    if (!NEXTJS_BASE_URL || NEXTJS_BASE_URL.includes("TON_DOMAINE")) {
+      console.warn("[warmup] NEXTJS_BASE_URL non configuré — warmup ignoré.");
+      return;
+    }
     try {
       await fetch(`${NEXTJS_BASE_URL}/api/warmup${CACHE_SECRET ? `?secret=${CACHE_SECRET}` : ""}`);
       console.log("[warmup] OK");
@@ -1713,6 +1590,8 @@ exports.warmupCache = onSchedule(
   }
 );
 
+// Rafraîchit automatiquement le token Instagram tous les 30 jours.
+// Le token longue durée dure 60 j — on renouvelle à mi-chemin pour ne jamais expirer.
 exports.autoRefreshInstagramToken = onSchedule("0 0 1 * *", async () => {
   const creds = await getIgCredentials();
   if (!creds) {

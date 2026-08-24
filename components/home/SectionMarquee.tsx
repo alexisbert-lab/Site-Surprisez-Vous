@@ -6,7 +6,6 @@ const MARQUES = [
   { id: 'marquee_brand2', defaultLabel: 'Fête à DÉCO',      color: '#3DBDB0', bg: '#e8f8f7' },
   { id: 'marquee_brand3', defaultLabel: 'Oui pour la vie',  color: '#6B4FA0', bg: '#f0edf8' },
   { id: 'marquee_brand4', defaultLabel: 'Zéro de Conduite', color: '#2B3EA0', bg: '#eef0fb' },
-  { id: 'marquee_brand5', defaultLabel: 'OptimiZline',      color: '#E97132', bg: '#fde8dd' },
 ];
 
 const TRIPLED = [...MARQUES, ...MARQUES, ...MARQUES];
