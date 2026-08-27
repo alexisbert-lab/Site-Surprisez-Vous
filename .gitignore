@@ -94,6 +94,9 @@ serviceAccountKey.json
 # TypeScript incremental build cache
 *.tsbuildinfo
 
+# Fixtures du mode local (SV_LOCAL_DATA=1) — regénérées par npm run local:data
+.local-data/
+
 # Données ERP locales et notes de travail (ne pas committer)
 Clients_Final.csv
 exports_erp/

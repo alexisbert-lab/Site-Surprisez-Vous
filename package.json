@@ -8,6 +8,7 @@
     "deploy": "rm -rf .next out && next build && firebase deploy --only hosting",
     "start": "next start",
     "lint": "next lint",
+    "local:data": "node scripts/local-data.mjs",
     "seed": "tsx scripts/seed-firestore.ts",
     "unseed": "tsx scripts/unseed-firestore.ts",
     "create-users": "tsx scripts/create-auth-users.ts",
