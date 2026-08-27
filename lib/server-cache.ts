@@ -1,6 +1,9 @@
 import { unstable_cache } from 'next/cache';
-import { getProducts, toPublicProduct, type Product, type PublicProduct } from './firestore/products';
-import { getCategories, getDeclinations, type Category, type Declination } from './firestore/categories';
+import {
+  getProducts, toPublicProduct, filterArticlesVisiblesWithStatCats,
+  type Product, type PublicProduct,
+} from './firestore/products';
+import { getCategories, type Category } from './firestore/categories';
 import { getEvenements, type Evenement } from './firestore/evenements';
 import { getStatCategories, type StatCategory } from './firestore/stat-categories';
 import { getStockSettings, type StockSettings } from './firestore/settings';
@@ -14,6 +17,11 @@ import {
 } from './firestore/site-settings';
 import { getPageContent } from './firestore/page-content';
 import { getMarques, getProductMarques, type Marque } from './firestore/marques';
+import {
+  getAttributeRegistry, getAttributeValues, getProductAttributes,
+  type AttributeDef, type AttributeValue, type ProductAttributes,
+} from './firestore/attributes';
+import { lireLocal } from './local-data';
 
 // Cache serveur permanent — invalidé uniquement par les fonctions de synchronisation.
 const CACHE_OPTS = (tags: string[]) => ({ revalidate: 86400 as const, tags });
@@ -40,6 +48,9 @@ async function fetchFromCF<T>(path: string): Promise<T | null> {
 // ── Products : store mutable module-level (supporte le patch partiel) ──────────
 export async function getCachedProducts(): Promise<Product[]> {
   if (process.env.NEXT_PHASE === 'phase-production-build') return [];
+  // Avant le mémo : éditer un fixture doit se voir au rechargement suivant.
+  const local = lireLocal<Product[]>('products');
+  if (local) return local;
   if (g._sv_products != null) return g._sv_products;
   g._sv_products = (await fetchFromCF<Product[]>('products')) ?? await getProducts();
   return g._sv_products;
@@ -70,6 +81,8 @@ export function invalidateCachedProducts(): void {
 // ── Stat-categories : store mutable module-level ───────────────────────────────
 export async function getCachedStatCategories(): Promise<StatCategory[]> {
   if (process.env.NEXT_PHASE === 'phase-production-build') return [];
+  const local = lireLocal<StatCategory[]>('stat-categories');
+  if (local) return local;
   if (g._sv_statCategories != null) return g._sv_statCategories;
   g._sv_statCategories = (await fetchFromCF<StatCategory[]>('stat-categories')) ?? await getStatCategories();
   return g._sv_statCategories;
@@ -89,12 +102,6 @@ export function invalidateCachedStatCategories(): void {
   g._sv_statCategories = null;
 }
 
-export const getCachedDeclinations = unstable_cache(
-  async (): Promise<Declination[]> => getDeclinations(),
-  ['declinations'],
-  CACHE_OPTS(['declinations'])
-);
-
 export const getCachedStockSettings = unstable_cache(
   async (): Promise<StockSettings> => getStockSettings(),
   ['stock-settings'],
@@ -113,17 +120,86 @@ export const getCachedEvenements = unstable_cache(
   CACHE_OPTS(['evenements'])
 );
 
-export const getCachedMarques = unstable_cache(
+const _marques = unstable_cache(
   async (): Promise<Marque[]> => getMarques(),
   ['marques'],
   CACHE_OPTS(['marques'])
 );
+export const getCachedMarques = async (): Promise<Marque[]> =>
+  lireLocal<Marque[]>('marques') ?? _marques();
 
-export const getCachedProductMarques = unstable_cache(
+const _productMarques = unstable_cache(
   async (): Promise<Record<string, string>> => getProductMarques(),
   ['product-marques'],
   CACHE_OPTS(['product-marques'])
 );
+export const getCachedProductMarques = async (): Promise<Record<string, string>> =>
+  lireLocal<Record<string, string>>('product-marques') ?? _productMarques();
+
+// ── Attributs produits : invalidés par la Cloud Function syncAttributs ────────
+// Le repli local passe devant unstable_cache, sinon le Data Cache servirait la
+// valeur figée et modifier un fixture ne changerait rien à l'écran.
+const _attributeRegistry = unstable_cache(
+  async (): Promise<AttributeDef[]> => getAttributeRegistry(),
+  ['attribute-registry'],
+  CACHE_OPTS(['attribute-registry'])
+);
+export const getCachedAttributeRegistry = async (): Promise<AttributeDef[]> =>
+  lireLocal<AttributeDef[]>('attribute-registry') ?? _attributeRegistry();
+
+const _attributeValues = unstable_cache(
+  async (): Promise<AttributeValue[]> => getAttributeValues(),
+  ['attribute-values'],
+  CACHE_OPTS(['attribute-values'])
+);
+export const getCachedAttributeValues = async (): Promise<AttributeValue[]> =>
+  lireLocal<AttributeValue[]>('attribute-values') ?? _attributeValues();
+
+const _productAttributes = unstable_cache(
+  async (): Promise<Record<string, ProductAttributes>> => getProductAttributes(),
+  ['product-attributes'],
+  CACHE_OPTS(['product-attributes'])
+);
+export const getCachedProductAttributes = async (): Promise<Record<string, ProductAttributes>> =>
+  lireLocal<Record<string, ProductAttributes>>('product-attributes') ?? _productAttributes();
+
+/**
+ * Compteurs du méga-menu, par slug de sous-catégorie. Le Header est rendu sur
+ * toutes les pages : y sérialiser tout `product-attributes` coûterait cher pour
+ * un simple nombre à droite de chaque rayon.
+ */
+export async function getCachedCompteursMenu(): Promise<Record<string, number>> {
+  const registre = await getCachedAttributeRegistry();
+  // Registre absent : pas de menu à compter, et surtout pas de produits à charger
+  // sur des pages qui n'en affichent aucun.
+  if (registre.length === 0) return {};
+
+  const [attributs, produits, statCats] = await Promise.all([
+    getCachedProductAttributes(),
+    getCachedPublicProducts(),
+    getCachedStatCategories(),
+  ]);
+  const cleSousCat = registre
+    .filter((d) => d.actif && d.zone === 'menu')
+    .sort((a, b) => (a.niveau ?? 0) - (b.niveau ?? 0))[1]?.cle ?? 'sous_categorie';
+  const cleGroupe = registre.find((d) => d.actif && d.zone === 'groupe')?.cle ?? 'groupe';
+
+  // Un article décliné en cinq couleurs est un article, pas cinq : on compte les
+  // groupes distincts, comme la grille du catalogue en affiche une carte par groupe.
+  const groupes: Record<string, Set<string>> = {};
+  for (const p of filterArticlesVisiblesWithStatCats(produits, statCats)) {
+    const attrs = attributs[p.pdt_reference];
+    const brut = attrs?.[cleGroupe];
+    const clef = (Array.isArray(brut) ? brut[0] : brut) || p.pdt_reference;
+    const valeur = attrs?.[cleSousCat];
+    for (const slug of Array.isArray(valeur) ? valeur : [valeur]) {
+      if (slug) (groupes[slug] ??= new Set()).add(clef);
+    }
+  }
+  const out: Record<string, number> = {};
+  for (const [slug, clefs] of Object.entries(groupes)) out[slug] = clefs.size;
+  return out;
+}
 
 // ── Clients : store mutable module-level ──────────────────────────────────────
 let _clients: Client[] | null = null;

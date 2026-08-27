@@ -11,7 +11,6 @@ import type { MarketingItem } from './firestore/marketing';
 import type { GroupeContact } from './firestore/groupes-contact';
 import type { ContenuPage } from './firestore/contenu-pages';
 import type { Evenement } from './firestore/evenements';
-import type { Declination } from './firestore/categories';
 import type { StockSettings } from './firestore/settings';
 
 const CF_BASE = process.env.NEXT_PUBLIC_CACHE_CF_URL!;
@@ -32,7 +31,6 @@ const TTL: Record<string, number> = {
   'groupes-contact': 15 * 60 * 1000,
   'contenu-pages':   15 * 60 * 1000,
   evenements:        15 * 60 * 1000,
-  declinations:      30 * 60 * 1000,
   'tarif-grids':     15 * 60 * 1000,
   'pro-requests':     1 * 60 * 1000,
   'stock-settings':  30 * 60 * 1000,
@@ -87,7 +85,6 @@ export const api = {
   getProRequests:    (idToken: string) => fetchCollection<ProRequest[]>('pro-requests', undefined, idToken),
   getMarketing:      () => fetchCollection<MarketingItem[]>('marketing'),
   getEvenements:     () => fetchCollection<Evenement[]>('evenements'),
-  getDeclinations:   () => fetchCollection<Declination[]>('declinations'),
   getContenuPages:   () => fetchCollection<ContenuPage[]>('contenu-pages'),
   getStockSettings:  () => fetchCollection<StockSettings>('stock-settings'),
 
