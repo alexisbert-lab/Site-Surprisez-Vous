@@ -26,7 +26,7 @@ env:
     value: "1:194856824011:web:07c3a5854cb73c0cd97f4e"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_DATABASE_URL
-    value: https://site-surprisez-vous-default-rtdb.firebaseio.com
+    value: https://site-surprisez-vous-default-rtdb.europe-west1.firebasedatabase.app
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     value: G-7H709DQMQ9
