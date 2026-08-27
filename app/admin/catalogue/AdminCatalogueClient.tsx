@@ -4,8 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { filterArticlesVisibles, setProductVisibleOverride, getStatCategory, isEnRupture, isStockFaible, formatEan, type Product } from '@/lib/firestore/products';
 import {
   createCategory, updateCategory, deleteCategory,
-  saveDeclination, deleteDeclination,
-  type Category, type Declination,
+  type Category,
 } from '@/lib/firestore/categories';
 import { saveEvenement, deleteEvenement, type Evenement } from '@/lib/firestore/evenements';
 import { saveStockSettings, type StockSettings } from '@/lib/firestore/settings';
@@ -19,14 +18,13 @@ import { thClass, tdClass, btnPrimSm, btnSecSm, btnDangerSm, inputSm, selectClas
 interface InitialData {
   products: Product[];
   categories: Category[];
-  declinations: Declination[];
   evenements: Evenement[];
   stockSettings: StockSettings;
   statCats: StatCategory[];
 }
 
 export default function AdminCatalogueClient({ initialData }: { initialData: InitialData }) {
-  const [activeTab, setActiveTab] = useState<'articles' | 'categories' | 'declinaisons' | 'evenements' | 'codes-stats'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'categories' | 'evenements' | 'codes-stats'>('articles');
   const [products, setProducts] = useState<Product[]>(() => filterArticlesVisibles(initialData.products));
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
@@ -38,10 +36,6 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
   const [editCatName, setEditCatName] = useState('');
   const [editCatCodeStat, setEditCatCodeStat] = useState('');
   const [modalCatId, setModalCatId] = useState<string | null>(null);
-  const [declinations, setDeclinations] = useState<Declination[]>(initialData.declinations);
-  const [decForm, setDecForm] = useState<{ id: string; designation: string; sous_titre: string; variants: { label: string; ref: string }[] }>({
-    id: '', designation: '', sous_titre: '', variants: [],
-  });
   const [evenements, setEvenements] = useState<Evenement[]>(initialData.evenements);
   const [evtForm, setEvtForm] = useState<{ id: string; nom: string; description: string; categories: string[]; actif: boolean }>({
     id: '', nom: '', description: '', categories: [], actif: true,
@@ -55,7 +49,6 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
     if (products.length > 0) return;
     api.getProducts().then((data) => setProducts(filterArticlesVisibles(data)));
     api.getCategories().then(setCategories);
-    api.getDeclinations().then(setDeclinations);
     api.getEvenements().then(setEvenements);
     api.getStatCategories().then(setStatCats);
     api.getStockSettings().then((s) => { setSeuilStockFaible(s.seuil_stock_faible); setSeuilInput(String(s.seuil_stock_faible)); });
@@ -106,21 +99,6 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
   };
   const handleDeleteCategory = async (id: string) => { if (!confirm('Supprimer ce groupe ?')) return; await deleteCategory(id); bust('categories'); setCategories((prev) => prev.filter((c) => c.id !== id)); };
 
-  const resetDecForm = () => setDecForm({ id: '', designation: '', sous_titre: '', variants: [] });
-  const handleSaveDec = async () => {
-    if (!decForm.designation.trim()) { alert('La designation est obligatoire.'); return; }
-    const validVariants = decForm.variants.filter((v) => v.label && v.ref);
-    if (!validVariants.length) { alert('Ajoutez au moins un variant.'); return; }
-    const id = decForm.id || Math.random().toString(36).slice(2, 10);
-    const dec: Declination = { id, designation: decForm.designation, sous_titre: decForm.sous_titre, variants: validVariants.map((v) => ({ label: v.label, ref: v.ref.toUpperCase() })) };
-    await saveDeclination(dec);
-    bust('declinations');
-    setDeclinations((prev) => { const idx = prev.findIndex((d) => d.id === id); if (idx !== -1) { const next = [...prev]; next[idx] = dec; return next; } return [...prev, dec]; });
-    resetDecForm();
-  };
-  const handleEditDec = (dec: Declination) => setDecForm({ id: dec.id, designation: dec.designation, sous_titre: dec.sous_titre || '', variants: dec.variants.map((v) => ({ ...v })) });
-  const handleDeleteDec = async (id: string) => { if (!confirm('Supprimer cette declinaison ?')) return; await deleteDeclination(id); bust('declinations'); setDeclinations((prev) => prev.filter((d) => d.id !== id)); };
-
   const resetEvtForm = () => setEvtForm({ id: '', nom: '', description: '', categories: [], actif: true });
   const handleSaveEvt = async () => {
     if (!evtForm.nom.trim()) return;
@@ -155,7 +133,6 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
     { key: 'articles' as const, label: 'Articles' },
     { key: 'codes-stats' as const, label: 'Codes stats' },
     { key: 'categories' as const, label: 'Catégories' },
-    { key: 'declinaisons' as const, label: 'Déclinaisons' },
     { key: 'evenements' as const, label: 'Événements' },
   ];
 
@@ -294,46 +271,6 @@ export default function AdminCatalogueClient({ initialData }: { initialData: Ini
             </div>
           )}
         </div>
-      )}
-
-      {activeTab === 'declinaisons' && (
-        <>
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mb-5">
-            <h2 className="text-[15px] font-bold mb-4 pb-3 border-b border-gray-200">{decForm.id ? `Modifier : ${decForm.designation}` : 'Nouvelle déclinaison'}</h2>
-            <div className="flex gap-2 mb-3"><input type="text" placeholder="Désignation (ex : Ballon Métallique Multicolore)" value={decForm.designation} onChange={(e) => setDecForm((p) => ({ ...p, designation: e.target.value }))} className={inputSm} /></div>
-            <div className="flex gap-2 mb-4"><input type="text" placeholder="Sous-titre (ex : Tous les chiffres)" value={decForm.sous_titre} onChange={(e) => setDecForm((p) => ({ ...p, sous_titre: e.target.value }))} className={inputSm} /></div>
-            {decForm.variants.map((v, i) => (
-              <div key={i} className="flex gap-2 items-center mb-2">
-                <input type="text" className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg text-sm" placeholder="Label" value={v.label}
-                  onChange={(e) => { const variants = [...decForm.variants]; variants[i] = { ...variants[i], label: e.target.value }; setDecForm((p) => ({ ...p, variants })); }} />
-                <input type="text" className="w-40 px-2 py-1.5 border border-gray-300 rounded-lg text-sm" placeholder="Référence" value={v.ref}
-                  onChange={(e) => { const variants = [...decForm.variants]; variants[i] = { ...variants[i], ref: e.target.value }; setDecForm((p) => ({ ...p, variants })); }} />
-                <button className={btnDangerSm} onClick={() => setDecForm((p) => ({ ...p, variants: p.variants.filter((_, j) => j !== i) }))}>&#x2715;</button>
-              </div>
-            ))}
-            <div className="flex gap-2 mt-3">
-              <button className={btnSecSm} onClick={() => setDecForm((p) => ({ ...p, variants: [...p.variants, { label: '', ref: '' }] }))}>+ Ajouter variant</button>
-              <button className={btnPrimSm} onClick={handleSaveDec}>Enregistrer</button>
-              {decForm.id && <button className={btnSecSm} onClick={resetDecForm}>Annuler</button>}
-            </div>
-          </div>
-          {declinations.length === 0 ? <p className="text-gray-400 italic text-sm">Aucune déclinaison configurée.</p> : (
-            <div className="space-y-2">
-              {declinations.map((dec) => (
-                <div key={dec.id} className="flex justify-between items-center px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white shadow-sm">
-                  <div>
-                    <div className="font-semibold">{dec.designation}</div>
-                    <div className="text-xs text-gray-400">{dec.sous_titre || ''} &mdash; {dec.variants.length} variant(s)</div>
-                  </div>
-                  <div className="space-x-1">
-                    <button className={btnSecSm} onClick={() => handleEditDec(dec)}>Modifier</button>
-                    <button className={btnDangerSm} onClick={() => handleDeleteDec(dec.id)}>Supprimer</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
       )}
 
       {activeTab === 'evenements' && (

@@ -3,7 +3,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { formatEan, filterArticlesVisiblesWithStatCats, type Product } from '@/lib/firestore/products';
-import { getDeclinations, type Declination } from '@/lib/firestore/categories';
+import {
+  type AttributeDef, type AttributeValue, type ProductAttributes,
+} from '@/lib/firestore/attributes';
+import { buildRegistry } from '@/lib/attributes';
+import { grouper, versDeclinaisons, type Declinaison } from '@/lib/declinaisons';
 import { type StatCategory } from '@/lib/firestore/stat-categories';
 import { getStockSettings, type StockSettings } from '@/lib/firestore/settings';
 import { api } from '@/lib/api';
@@ -31,12 +35,14 @@ interface DisplayItem {
 
 interface InitialData {
   products: Product[];
-  declinations: Declination[];
   stockSettings: StockSettings;
   statCategories: StatCategory[];
+  attributeDefs: AttributeDef[];
+  attributeValues: AttributeValue[];
+  productAttributes: Record<string, ProductAttributes>;
 }
 
-function buildItems(products: Product[], declinations: Declination[]): DisplayItem[] {
+function buildItems(products: Product[], declinations: Declinaison[]): DisplayItem[] {
   const refsVariants = new Set<string>();
   declinations.forEach((dec) => dec.variants?.forEach((v) => refsVariants.add(v.ref)));
   const articlesNormaux: DisplayItem[] = products
@@ -56,7 +62,6 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
   const catIds = profile?.cat_ids;
 
   const [resolvedProducts, setResolvedProducts] = useState(initialData.products);
-  const [declinationsList, setDeclinationsList] = useState<Declination[]>(initialData.declinations);
   const [seuilStockFaible, setSeuilStockFaible] = useState(initialData.stockSettings.seuil_stock_faible);
   const [statCatsList, setStatCatsList] = useState<StatCategory[]>(initialData.statCategories);
 
@@ -65,11 +70,9 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
     Promise.all([
       api.getProducts(),
       api.getStatCategories() as Promise<StatCategory[]>,
-      getDeclinations(),
       getStockSettings(),
-    ]).then(([allProds, allStatCats, decls, stockSett]) => {
+    ]).then(([allProds, allStatCats, stockSett]) => {
       setResolvedProducts(filterArticlesVisiblesWithStatCats(allProds, allStatCats));
-      setDeclinationsList(decls);
       setSeuilStockFaible(stockSett.seuil_stock_faible);
       setStatCatsList(allStatCats);
     }).catch(() => {});
@@ -84,13 +87,20 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
     return resolvedProducts.filter((p) => p.cat_ids?.some((id) => catIds.includes(id)));
   }, [authLoading, catIds, resolvedProducts]);
 
+  // Les déclinaisons ne sont plus saisies à la main : elles se déduisent de la colonne
+  // `groupe` du classeur, et les libellés de variante viennent du référentiel.
+  const declinationsList = useMemo(() => {
+    const reg = buildRegistry(initialData.attributeDefs, initialData.attributeValues);
+    return versDeclinaisons(grouper(authorizedProducts, initialData.productAttributes, reg));
+  }, [authorizedProducts, initialData.attributeDefs, initialData.attributeValues, initialData.productAttributes]);
+
   const items = useMemo(() => buildItems(authorizedProducts, declinationsList), [authorizedProducts, declinationsList]);
   const catalogueBrut = authorizedProducts;
 
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
   const [filterCat, setFilterCat] = useState('');
   const [filterStat, setFilterStat] = useState('');
-  const [modalDec, setModalDec] = useState<Declination | null>(null);
+  const [modalDec, setModalDec] = useState<Declinaison | null>(null);
   const [addedRef, setAddedRef] = useState<string | null>(null);
   const [qtys, setQtys] = useState<Record<string, number>>({});
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());

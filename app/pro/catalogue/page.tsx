@@ -2,23 +2,33 @@ import { Suspense } from 'react';
 import ProCatalogueClient from './ProCatalogueClient';
 import {
   getCachedProducts,
-  getCachedDeclinations,
   getCachedStockSettings,
   getCachedStatCategories,
+  getCachedAttributeRegistry,
+  getCachedAttributeValues,
+  getCachedProductAttributes,
 } from '@/lib/server-cache';
 
 export default async function ProCataloguePage() {
-  const [products, declinations, stockSettings, statCategories] = await Promise.all([
+  const [
+    products, stockSettings, statCategories,
+    attributeDefs, attributeValues, productAttributes,
+  ] = await Promise.all([
     getCachedProducts(),
-    getCachedDeclinations(),
     getCachedStockSettings(),
     getCachedStatCategories(),
+    getCachedAttributeRegistry(),
+    getCachedAttributeValues(),
+    getCachedProductAttributes(),
   ]);
 
   return (
     <Suspense>
       <ProCatalogueClient
-        initialData={{ products, declinations, stockSettings, statCategories }}
+        initialData={{
+          products, stockSettings, statCategories,
+          attributeDefs, attributeValues, productAttributes,
+        }}
       />
     </Suspense>
   );

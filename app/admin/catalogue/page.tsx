@@ -1,6 +1,5 @@
 import {
   getCachedProducts,
-  getCachedDeclinations,
   getCachedCategories,
   getCachedEvenements,
   getCachedStockSettings,
@@ -9,9 +8,8 @@ import {
 import AdminCatalogueClient from './AdminCatalogueClient';
 
 export default async function AdminCataloguePage() {
-  const [products, declinations, categories, evenements, stockSettings, statCats] = await Promise.all([
+  const [products, categories, evenements, stockSettings, statCats] = await Promise.all([
     getCachedProducts(),
-    getCachedDeclinations(),
     getCachedCategories(),
     getCachedEvenements(),
     getCachedStockSettings(),
@@ -20,7 +18,7 @@ export default async function AdminCataloguePage() {
 
   return (
     <AdminCatalogueClient
-      initialData={{ products, declinations, categories, evenements, stockSettings, statCats }}
+      initialData={{ products, categories, evenements, stockSettings, statCats }}
     />
   );
 }
