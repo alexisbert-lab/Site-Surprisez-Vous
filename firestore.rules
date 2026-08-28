@@ -110,6 +110,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /product-groups/{groupe} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Tarifs — lecture pro et admin, écriture admin uniquement
     match /tarifs/{tarifId} {
       allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'pro'];

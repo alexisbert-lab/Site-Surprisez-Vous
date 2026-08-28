@@ -1213,6 +1213,53 @@ const FICHIERS_SYNC = {
     await callRevalidate(["product-attributes"]);
     return { collection: "product-attributes", nouveau, modifie, inchange, supprime, ignore };
   },
+
+  // Une ligne par article decline : la reference maitre et la description du groupe.
+  // Sans registre a lire, ce handler ne depend d'aucun autre — mais il vient en
+  // dernier, le code de groupe n'ayant de sens qu'une fois les produits ecrits.
+  "SV_GROUPES.csv": async (rows) => {
+    const champsCompares = ["ref_principale", "description"];
+    const existingMap = await readCollectionMap("product-groups");
+    const vus = new Set();
+    let batch = db.batch();
+    let ops = 0, nouveau = 0, modifie = 0, inchange = 0, ignore = 0;
+
+    for (const row of rows) {
+      const groupe = (row.groupe || "").toString().trim();
+      if (!groupe) continue;
+      if ((row.actif || "").toString().trim().toLowerCase() === "non") { ignore++; continue; }
+      const docId = groupe.replace(/\//g, "__");
+      vus.add(docId);
+
+      const incoming = {
+        groupe,
+        ref_principale: (row.ref_principale || "").toString().trim(),
+        description: (row.description || "").toString().trim(),
+      };
+
+      const existing = existingMap.get(docId);
+      const change = !existing || champsCompares.some((f) => existing[f] !== incoming[f]);
+      if (!change) { inchange++; continue; }
+      batch.set(db.collection("product-groups").doc(docId), incoming, { merge: true });
+      if (existing) modifie++; else nouveau++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    // Un groupe defait au classeur doit cesser de coiffer ses references.
+    let supprime = 0;
+    for (const docId of existingMap.keys()) {
+      if (vus.has(docId)) continue;
+      batch.delete(db.collection("product-groups").doc(docId));
+      supprime++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    if (ops % 450 !== 0) await batch.commit();
+    await callRevalidate(["product-groups"]);
+    return { collection: "product-groups", nouveau, modifie, inchange, supprime, ignore };
+  },
 };
 
 // ===== Orchestrateur : lit tout le dossier Drive et sync =====
@@ -1556,8 +1603,9 @@ const FICHIERS_PAR_TYPE = {
   clients:        ["EXP_CLIENTS_1165.CSV", "Clients_Final.csv"],
   commandes:      ["EXP_COMMANDES_1165.CSV"],
   colisage:       ["EXP_COLISAGE_1165.CSV"],
-  // Ordre significatif : le registre décrit les colonnes que SV_PRODUITS.csv doit éclater.
-  attributs:      ["SV_ATTRIBUTS.csv", "SV_VALEURS.csv", "SV_PRODUITS.csv"],
+  // Ordre significatif : le registre décrit les colonnes que SV_PRODUITS.csv doit éclater,
+  // et les groupes ne coiffent que des références déjà écrites.
+  attributs:      ["SV_ATTRIBUTS.csv", "SV_VALEURS.csv", "SV_PRODUITS.csv", "SV_GROUPES.csv"],
 };
 
 const SYNC_TYPE_TO_COLLECTION = {

@@ -308,6 +308,27 @@ function produitsDemo(attributs, designations) {
   }));
 }
 
+/**
+ * Feuille GROUPES : une ligne par article decline. Absente, le site retombe sur le
+ * comportement d'avant — chef trie par reference, aucune description de groupe.
+ */
+function chargerGroupes() {
+  const csv = join(CSV_DIR, 'SV_GROUPES.csv');
+  if (!existsSync(csv)) return {};
+  const out = {};
+  for (const row of lireCsv(csv, 'groupe')) {
+    const groupe = (row.groupe ?? '').trim();
+    if (!groupe) continue;
+    if ((row.actif ?? '').trim().toLowerCase() === 'non') continue;
+    out[groupe] = {
+      groupe,
+      ref_principale: (row.ref_principale ?? '').trim(),
+      description: (row.description ?? '').trim(),
+    };
+  }
+  return out;
+}
+
 // ── Ecriture ──────────────────────────────────────────────────────────────────
 
 function ecrire(nom, data) {
@@ -329,6 +350,7 @@ async function main() {
   console.log('Fichiers ecrits :');
   ecrire('attribute-registry', registre);
   ecrire('attribute-values', valeurs);
+  ecrire('product-groups', chargerGroupes());
   if (ignore) console.log(`  ${ignore} ligne(s) du classeur non « actif » ignorée(s)`);
 
   let produits;
