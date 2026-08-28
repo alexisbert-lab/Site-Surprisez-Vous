@@ -9,6 +9,7 @@ import type { AttributeDef } from '@/lib/firestore/attributes';
 import { libelleDe, type Registry } from '@/lib/attributes';
 import { variantePourSlug, type Groupe } from '@/lib/declinaisons';
 import { ProductImage } from '@/components/ui/ProductImage';
+import ListeDeclinaisons from '@/components/catalogue/ListeDeclinaisons';
 
 /**
  * Le sélecteur de déclinaison réécrit l'URL : chaque variante reste partageable et le
@@ -31,6 +32,12 @@ export default function FicheClient({ groupe, reg, slug }: {
     setRefSel(ref);
     if (seoSlug && seoSlug !== slug) router.replace(`/produit/${seoSlug}`, { scroll: false });
   };
+
+  // Le maître parle pour l'article entier ; une variante choisie ne parle que d'elle.
+  const description =
+    produit.pdt_reference === groupe.chef.pdt_reference
+      ? groupe.description || attrs?.description_courte || ''
+      : attrs?.description_courte ?? '';
 
   const categorie = attrs?.[reg.cleCategorie] as string | undefined;
   const sousCategorie = attrs?.[reg.cleSousCategorie] as string | undefined;
@@ -81,7 +88,7 @@ export default function FicheClient({ groupe, reg, slug }: {
       </nav>
 
       <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-        <div className="bg-sv-grey-light rounded-2xl flex items-center justify-center p-8 md:p-12 md:min-h-125">
+        <div className="bg-section-alt rounded-2xl flex items-center justify-center p-8 md:p-12 md:min-h-125">
           <ProductImage
             imageRef={produit.pdt_reference}
             className="w-full h-full max-h-125 object-contain"
@@ -91,51 +98,26 @@ export default function FicheClient({ groupe, reg, slug }: {
         <div>
           <p className="text-xs text-ink-secondary font-mono">{produit.pdt_reference}</p>
           <h1 className="text-3xl md:text-4xl font-extrabold text-ink leading-tight mt-2 font-[family-name:var(--font-heading)]">
-            {attrs?.libelle || produit.pdt_designation}
+            {produit.pdt_designation}
           </h1>
-          {attrs?.description_courte && (
+          {description && (
             <p className="text-base text-ink-secondary mt-5 leading-relaxed">
-              {attrs.description_courte}
+              {description}
             </p>
           )}
 
           {groupe.variantes.length > 1 && (
             <div className="mt-8">
-              <p className="text-sm font-semibold text-ink mb-2.5">
-                {groupe.axe?.libelle ?? 'Déclinaisons'}
-                <span className="font-normal text-ink-secondary"> · {variante.libelle}</span>
-              </p>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                {groupe.variantes.map((v) => {
-                  const actif = v.produit.pdt_reference === refSel;
-                  return groupe.axe?.rendu === 'pastille' ? (
-                    <button
-                      key={v.produit.pdt_reference}
-                      onClick={() => choisir(v.produit.pdt_reference, v.seoSlug)}
-                      title={v.libelle}
-                      aria-label={v.libelle}
-                      aria-pressed={actif}
-                      className={`w-9 h-9 rounded-full border-2 transition-colors cursor-pointer ${
-                        actif ? 'border-sv-primary' : 'border-border hover:border-sv-primary/60'
-                      }`}
-                      style={{ background: v.teinte }}
-                    />
-                  ) : (
-                    <button
-                      key={v.produit.pdt_reference}
-                      onClick={() => choisir(v.produit.pdt_reference, v.seoSlug)}
-                      aria-pressed={actif}
-                      className={`px-3.5 py-2 text-sm rounded-lg border transition-colors cursor-pointer ${
-                        actif
-                          ? 'border-sv-primary bg-sv-primary/10 text-ink font-semibold'
-                          : 'border-border text-ink-secondary hover:border-sv-primary/60'
-                      }`}
-                    >
-                      {v.libelle}
-                    </button>
-                  );
-                })}
-              </div>
+              <ListeDeclinaisons
+                variantes={groupe.variantes}
+                refSel={refSel}
+                onSelect={(ref) => {
+                  const v = groupe.variantes.find((x) => x.produit.pdt_reference === ref);
+                  choisir(ref, v?.seoSlug ?? '');
+                }}
+                titre={groupe.axe?.libelle ?? 'Déclinaisons'}
+                pastilles={groupe.axe?.rendu === 'pastille'}
+              />
             </div>
           )}
 

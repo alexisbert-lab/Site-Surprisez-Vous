@@ -1152,7 +1152,9 @@ const FICHIERS_SYNC = {
       throw new Error("attribute-registry vide : synchroniser SV_ATTRIBUTS.csv avant SV_PRODUITS.csv");
     }
     const attributs = [...registre.values()];
-    const champsCompares = ["libelle", "statut", "description_courte", "seo_slug", ...attributs.map((a) => a.cle)];
+    // Pas de libelle : la designation vient de l'ERP (pdt_designation), le classeur ne
+    // la recopie pas. Les documents ecrits avant cette regle gardent le champ, sans effet.
+    const champsCompares = ["statut", "description_courte", "seo_slug", ...attributs.map((a) => a.cle)];
 
     const existingMap = await readCollectionMap("product-attributes");
     const vus = new Set();
@@ -1169,7 +1171,6 @@ const FICHIERS_SYNC = {
 
       const incoming = {
         ref,
-        libelle: (row.libelle || "").toString().trim(),
         statut: "actif",
         description_courte: (row.description_courte || "").toString().trim(),
         seo_slug: (row.seo_slug || "").toString().trim(),

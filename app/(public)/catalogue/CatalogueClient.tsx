@@ -7,14 +7,15 @@ import { filterArticlesVisiblesWithStatCats, type PublicProduct } from '@/lib/fi
 import { type StatCategory } from '@/lib/firestore/stat-categories';
 import { type Marque } from '@/lib/firestore/marques';
 import {
-  type AttributeDef, type AttributeValue, type ProductAttributes,
+  type AttributeDef, type AttributeValue, type ProductAttributes, type ProductGroup,
 } from '@/lib/firestore/attributes';
 import {
   buildRegistry, valeursDe, libelleDe, teinteDe, selectionVide, correspond, compte,
   bascule, selectionVersParams, paramsVersSelection, type Selection, type Registry,
 } from '@/lib/attributes';
 import { grouper, type Groupe } from '@/lib/declinaisons';
-import MenuRayons from '@/components/catalogue/MenuRayons';
+import MenuCategories from '@/components/catalogue/MenuCategories';
+import ListeDeclinaisons from '@/components/catalogue/ListeDeclinaisons';
 import { ProductImage } from '@/components/ui/ProductImage';
 import Link from 'next/link';
 import { X } from 'lucide-react';
@@ -27,6 +28,7 @@ interface Props {
   attributeDefs: AttributeDef[];
   attributeValues: AttributeValue[];
   productAttributes: Record<string, ProductAttributes>;
+  productGroups: Record<string, ProductGroup>;
 }
 
 /** Nombre de pastilles montrées sur une carte avant de basculer sur un « +n ». */
@@ -42,14 +44,17 @@ const GroupeCard = memo(function GroupeCard({ groupe, onSelect }: {
   return (
     <button
       onClick={() => onSelect(groupe)}
-      className="bg-white border border-border rounded-xl overflow-hidden flex flex-col text-left hover:shadow-md hover:border-sv-primary/60 transition-all cursor-pointer"
+      className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col text-left hover:shadow-md hover:border-sv-primary/60 transition-all cursor-pointer"
     >
-      <div className="aspect-square bg-sv-grey-light flex items-center justify-center overflow-hidden">
+      <div className="aspect-square bg-section-alt flex items-center justify-center overflow-hidden">
         <ProductImage imageRef={chef.pdt_reference} className="w-full h-full object-contain p-2" />
       </div>
       <div className="p-3 flex flex-col gap-1">
         <p className="text-xs text-ink-secondary font-mono">{chef.pdt_reference}</p>
         <p className="text-sm font-semibold text-ink leading-tight line-clamp-2">{chef.pdt_designation}</p>
+        {groupe.description && (
+          <p className="text-xs text-ink-secondary leading-snug line-clamp-2">{groupe.description}</p>
+        )}
         {variantes.length > 1 && (
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             {enPastilles ? (
@@ -147,6 +152,13 @@ function FicheProduit({ groupe, reg, onClose }: {
   const produit = variante.produit;
   const attrs = variante.attrs;
 
+  // Le maître parle pour l'article entier ; une variante choisie ne parle que d'elle.
+  // Sans groupe décrit, on retombe sur la description de la référence : rien ne se perd.
+  const description =
+    produit.pdt_reference === groupe.chef.pdt_reference
+      ? groupe.description || attrs?.description_courte || ''
+      : attrs?.description_courte ?? '';
+
   // Escape ferme, et le fond ne défile pas sous la modale.
   useEffect(() => {
     const surTouche = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -184,20 +196,20 @@ function FicheProduit({ groupe, reg, onClose }: {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col"
+        className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col"
       >
         <div className="h-0.75 shrink-0" style={{ background: 'linear-gradient(90deg,#E8185A,#F5A623,#3DBDB0)' }} />
 
         <button
           onClick={onClose}
           aria-label="Fermer"
-          className="absolute top-5 right-5 z-10 w-9 h-9 bg-white/90 border border-border rounded-full flex items-center justify-center hover:bg-sv-grey-light hover:border-sv-primary transition-colors cursor-pointer"
+          className="absolute top-5 right-5 z-10 w-9 h-9 bg-white/90 border border-border rounded-full flex items-center justify-center hover:bg-section-alt hover:border-sv-primary transition-colors cursor-pointer"
         >
           <X size={18} />
         </button>
 
         <div className="grid md:grid-cols-2 overflow-y-auto">
-          <div className="bg-sv-grey-light flex items-center justify-center p-6 md:p-10 md:h-full md:min-h-125">
+          <div className="bg-section-alt flex items-center justify-center p-6 md:p-10 md:h-full md:min-h-125">
             <ProductImage
               imageRef={produit.pdt_reference}
               className="w-full h-full max-h-100 object-contain"
@@ -209,54 +221,26 @@ function FicheProduit({ groupe, reg, onClose }: {
             <h2 className="text-2xl font-extrabold text-ink leading-tight mt-1.5 font-[family-name:var(--font-heading)]">
               {produit.pdt_designation}
             </h2>
-            {attrs?.description_courte && (
-              <p className="text-base text-ink-secondary mt-4 leading-relaxed">{attrs.description_courte}</p>
+            {description && (
+              <p className="text-base text-ink-secondary mt-4 leading-relaxed">{description}</p>
             )}
 
             {groupe.variantes.length > 1 && (
               <div className="mt-6">
-                <p className="text-sm font-semibold text-ink mb-2">
-                  {groupe.axe?.libelle ?? 'Déclinaisons'}
-                  <span className="font-normal text-ink-secondary"> · {variante.libelle}</span>
-                </p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {groupe.variantes.map((v) => {
-                    const actif = v.produit.pdt_reference === refSel;
-                    return groupe.axe?.rendu === 'pastille' ? (
-                      <button
-                        key={v.produit.pdt_reference}
-                        onClick={() => setRefSel(v.produit.pdt_reference)}
-                        title={v.libelle}
-                        aria-label={v.libelle}
-                        aria-pressed={actif}
-                        className={`w-8 h-8 rounded-full border-2 transition-colors cursor-pointer ${
-                          actif ? 'border-sv-primary' : 'border-border hover:border-sv-primary/60'
-                        }`}
-                        style={{ background: v.teinte }}
-                      />
-                    ) : (
-                      <button
-                        key={v.produit.pdt_reference}
-                        onClick={() => setRefSel(v.produit.pdt_reference)}
-                        aria-pressed={actif}
-                        className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer ${
-                          actif
-                            ? 'border-sv-primary bg-sv-primary/10 text-ink font-semibold'
-                            : 'border-border text-ink-secondary hover:border-sv-primary/60'
-                        }`}
-                      >
-                        {v.libelle}
-                      </button>
-                    );
-                  })}
-                </div>
+                <ListeDeclinaisons
+                  variantes={groupe.variantes}
+                  refSel={refSel}
+                  onSelect={setRefSel}
+                  titre={groupe.axe?.libelle ?? 'Déclinaisons'}
+                  pastilles={groupe.axe?.rendu === 'pastille'}
+                />
               </div>
             )}
 
             {attrs ? (
               <dl className="mt-7">
                 <div className="grid grid-cols-[130px_1fr] gap-4 py-2.5 border-b border-border/60">
-                  <dt className="text-sm font-semibold text-ink">Rayon</dt>
+                  <dt className="text-sm font-semibold text-ink">Catégorie</dt>
                   <dd className="text-sm text-ink-secondary">
                     {libelleDe(reg, reg.cleCategorie, attrs[reg.cleCategorie] as string)}
                     {' › '}
@@ -288,17 +272,25 @@ function FicheProduit({ groupe, reg, onClose }: {
 
 export default function CatalogueClient({
   products, statCategories, marques, productMarques,
-  attributeDefs, attributeValues, productAttributes,
+  attributeDefs, attributeValues, productAttributes, productGroups,
 }: Props) {
   const { profile, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Un pro connecté n'a rien à faire sur la vitrine : ses tarifs sont sur
+  // /pro/catalogue. Deux échappatoires, pour comparer les deux pages sans se
+  // déconnecter : le mode développement, et `?public=1` (retenu au montage, la
+  // synchro d'URL des filtres réécrit la query derrière).
+  const paramPublic = useRef(searchParams.get('public') === '1').current;
+  const vuePublique = process.env.NODE_ENV !== 'production' || paramPublic;
+
   useEffect(() => {
+    if (vuePublique) return;
     if (!loading && (profile?.role === 'pro' || profile?.role === 'admin')) {
       router.replace('/pro/catalogue');
     }
-  }, [loading, profile, router]);
+  }, [vuePublique, loading, profile, router]);
 
   const reg = useMemo(() => buildRegistry(attributeDefs, attributeValues), [attributeDefs, attributeValues]);
 
@@ -324,9 +316,10 @@ export default function CatalogueClient({
     const params = selectionVersParams(reg, selection);
     if (marqueSel.length) params.set('marque', marqueSel.join('|'));
     if (search.trim()) params.set('q', search.trim());
+    if (paramPublic) params.set('public', '1');
     const qs = params.toString();
     router.replace(qs ? `/catalogue?${qs}` : '/catalogue', { scroll: false });
-  }, [selection, marqueSel, search, reg, router]);
+  }, [selection, marqueSel, search, reg, router, paramPublic]);
 
   // Visibilité ERP : état article, code stat inactif, exception individuelle. Toujours en premier.
   const visibleProducts = useMemo(
@@ -337,8 +330,8 @@ export default function CatalogueClient({
   // Un article décliné ne doit occuper qu'une carte et ne compter qu'une fois dans les
   // facettes. Tout ce qui suit raisonne donc en groupes, jamais en références.
   const groupesVisibles = useMemo(
-    () => grouper(visibleProducts, productAttributes, reg),
-    [visibleProducts, productAttributes, reg]
+    () => grouper(visibleProducts, productAttributes, reg, productGroups),
+    [visibleProducts, productAttributes, reg, productGroups]
   );
 
   const listeAttrs = useMemo(() => groupesVisibles.map((g) => g.fusion), [groupesVisibles]);
@@ -391,10 +384,10 @@ export default function CatalogueClient({
   const catSelect = selection[reg.cleCategorie] as string | null;
   const sousCatSelect = selection[reg.cleSousCategorie] as string | null;
 
-  const choisirRayon = (cat: string | null, sousCat: string | null) =>
+  const choisirCategorie = (cat: string | null, sousCat: string | null) =>
     setSelection((s) => ({ ...s, [reg.cleCategorie]: cat, [reg.cleSousCategorie]: sousCat }));
 
-  // Compté sans les clés du menu, sinon le rayon courant écraserait les autres.
+  // Compté sans les clés du menu, sinon la catégorie courante écraserait les autres.
   const compteursSousCat = useMemo(() => {
     const out: Record<string, number> = {};
     valeursDe(reg, reg.cleSousCategorie).forEach((sc) => {
@@ -450,18 +443,18 @@ export default function CatalogueClient({
         Notre Catalogue
       </h1>
       <p className="text-ink-secondary mb-6">
-        Choisissez un rayon, une occasion, une ambiance — ou cherchez directement.
+        Choisissez une catégorie, une occasion, une ambiance — ou cherchez directement.
       </p>
 
       {registrePret && (
         <>
-          {/* ── Zone menu : rayons du référentiel, catégorie › sous-catégorie ── */}
-          <MenuRayons
+          {/* ── Zone menu : catégories du référentiel, catégorie › sous-catégorie ── */}
+          <MenuCategories
             reg={reg}
             compteurs={compteursSousCat}
             variante="bandeau"
             actif={{ categorie: catSelect, sousCategorie: sousCatSelect }}
-            onChoisir={choisirRayon}
+            onChoisir={choisirCategorie}
           />
 
           {/* ── Zone filtre_tete : une bande, un onglet par attribut mis en avant ──
@@ -475,7 +468,7 @@ export default function CatalogueClient({
             const choisies = (selection[actif.cle] as string[]) ?? [];
             return (
               <section className="mb-6">
-                <div className="flex gap-1 bg-sv-grey-light rounded-xl p-1 w-fit mb-4">
+                <div className="flex gap-1 bg-section-alt rounded-xl p-1 w-fit mb-4">
                   {reg.tete.map((a) => {
                     const nSel = ((selection[a.cle] as string[]) ?? []).length;
                     const on = a.cle === actif.cle;
@@ -484,7 +477,7 @@ export default function CatalogueClient({
                         key={a.cle}
                         onClick={() => setOngletTete(a.cle)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                          on ? 'bg-white text-sv-primary shadow-sm' : 'text-ink-secondary hover:text-ink'
+                          on ? 'bg-surface text-sv-primary shadow-sm' : 'text-ink-secondary hover:text-ink'
                         }`}
                       >
                         {a.libelle}
@@ -506,7 +499,7 @@ export default function CatalogueClient({
                         className={`shrink-0 w-44 text-left border rounded-xl p-3.5 transition-all cursor-pointer ${
                           on
                             ? 'bg-sv-primary text-white border-sv-primary'
-                            : 'bg-white border-border hover:border-sv-primary/60 hover:shadow-md'
+                            : 'bg-surface border-border hover:border-sv-primary/60 hover:shadow-md'
                         }`}
                       >
                         <p className="font-bold text-sm leading-tight">{v.libelle}</p>
@@ -523,17 +516,17 @@ export default function CatalogueClient({
         </>
       )}
 
-      {/* ── Fil d'Ariane : position dans l'arborescence des rayons ── */}
+      {/* ── Fil d'Ariane : position dans l'arborescence des catégories ── */}
       {registrePret && catSelect && (
         <nav className="text-sm text-ink-secondary mb-5 flex items-center gap-2">
-          <button onClick={() => choisirRayon(null, null)} className="hover:underline cursor-pointer">
-            Tous les rayons
+          <button onClick={() => choisirCategorie(null, null)} className="hover:underline cursor-pointer">
+            Tout le catalogue
           </button>
           <span className="text-border">›</span>
           {sousCatSelect ? (
             <>
               <button
-                onClick={() => choisirRayon(catSelect, null)}
+                onClick={() => choisirCategorie(catSelect, null)}
                 className="hover:underline cursor-pointer"
               >
                 {libelleDe(reg, reg.cleCategorie, catSelect)}
@@ -550,7 +543,14 @@ export default function CatalogueClient({
       <div className="grid md:grid-cols-[220px_1fr] gap-8 items-start">
         {/* ── Zone filtre_attr : facettes en colonne ── */}
         {colonneFiltres && (
-          <aside className="hidden md:block border border-border rounded-xl px-4 py-2 sticky top-4">
+          <aside
+            className="hidden md:block border border-border rounded-xl px-4 py-2 sticky overflow-y-auto"
+            style={{
+              top: 'calc(var(--sv-header-visible-h, 0px) + 16px)',
+              maxHeight: 'calc(100vh - var(--sv-header-visible-h, 0px) - 32px)',
+              transition: 'top 0.35s cubic-bezier(0.4,0,0.2,1), max-height 0.35s cubic-bezier(0.4,0,0.2,1)',
+            }}
+          >
             <div className="flex items-center justify-between py-2.5 border-b border-border">
               <strong className="text-sm text-ink">Filtrer</strong>
               <button onClick={resetFacettes} className="text-xs text-ink-secondary underline cursor-pointer">

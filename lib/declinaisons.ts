@@ -1,4 +1,4 @@
-import type { ProductAttributes } from './firestore/attributes';
+import type { ProductAttributes, ProductGroup } from './firestore/attributes';
 import type { AttributeDef } from './firestore/attributes';
 import { type Registry, libelleDe, teinteDe } from './attributes';
 
@@ -17,6 +17,8 @@ import { type Registry, libelleDe, teinteDe } from './attributes';
 /** Tout ce dont le regroupement a besoin d'un produit. */
 export interface AvecRef {
   pdt_reference: string;
+  /** Désignation ERP : le nom affiché de l'article. Le classeur ne le recopie pas. */
+  pdt_designation?: string;
 }
 
 export interface Variante<P extends AvecRef> {
@@ -25,6 +27,8 @@ export interface Variante<P extends AvecRef> {
   /** Valeur d'axe portée par cette variante. Vide si aucun axe ne distingue le groupe. */
   slug: string;
   libelle: string;
+  /** Description propre à la référence, montrée en regard de son bouton. */
+  description: string;
   /** Renseignée seulement quand l'axe se rend en pastille. */
   teinte: string;
   /** URL de la fiche, dérivée du classeur. Vide tant que la référence n'y est pas décrite. */
@@ -34,8 +38,13 @@ export interface Variante<P extends AvecRef> {
 export interface Groupe<P extends AvecRef> {
   /** Identifiant interne, préfixé pour qu'un code de groupe ne heurte jamais une référence. */
   clef: string;
-  /** Membre qui porte l'URL canonique. */
+  /** Membre qui porte l'image, la désignation de la carte et l'URL canonique. */
   chef: P;
+  /**
+   * Description de l'article, distincte de celles des références. Affichée tant que
+   * le chef est sélectionné ; une variante choisie montre la sienne à la place.
+   */
+  description: string;
   membres: P[];
   variantes: Variante<P>[];
   /** Attributs des membres, pour les filtres et les compteurs. */
@@ -51,7 +60,7 @@ export interface Groupe<P extends AvecRef> {
 }
 
 /** Champs d'identité : ceux du chef font foi, ils ne s'additionnent pas. */
-const IDENTITE = ['ref', 'libelle', 'statut', 'description_courte', 'seo_slug'];
+const IDENTITE = ['ref', 'statut', 'description_courte', 'seo_slug'];
 
 function fusionner(
   refChef: string,
@@ -60,7 +69,6 @@ function fusionner(
   const base = membres.find(Boolean);
   const out: Record<string, string | string[]> = {
     ref: base?.ref ?? refChef,
-    libelle: base?.libelle ?? '',
     statut: base?.statut ?? '',
     description_courte: base?.description_courte ?? '',
     seo_slug: base?.seo_slug ?? '',
@@ -84,13 +92,17 @@ function fusionner(
 const premier = (v: string | string[] | undefined): string =>
   (Array.isArray(v) ? v[0] : v) ?? '';
 
+/** Code de groupe saisi au classeur, vide si la référence n'en porte pas. */
+const codeGroupe = (attrs: ProductAttributes | undefined, reg: Registry): string =>
+  attrs ? premier(attrs[reg.cleGroupe]) : '';
+
 /** Clé de regroupement d'une référence. Sans `groupe` au classeur, elle est seule. */
 export function clefGroupe(
   ref: string,
   attrs: ProductAttributes | undefined,
   reg: Registry
 ): string {
-  const groupe = attrs ? premier(attrs[reg.cleGroupe]) : '';
+  const groupe = codeGroupe(attrs, reg);
   return groupe ? `g:${groupe}` : `r:${ref}`;
 }
 
@@ -117,13 +129,19 @@ function construire<P extends AvecRef>(
   clef: string,
   membres: P[],
   attributs: Record<string, ProductAttributes>,
-  reg: Registry
+  reg: Registry,
+  meta: ProductGroup | undefined
 ): Groupe<P> {
-  // Tri par référence : la canonique d'un groupe ne doit pas dépendre de l'ordre de l'ERP.
+  // Tri par référence : l'ordre de l'ERP ne doit peser ni sur l'affichage ni sur le
+  // repli quand la feuille GROUPES ne désigne aucune référence maître.
   const tries = [...membres].sort((a, b) => a.pdt_reference.localeCompare(b.pdt_reference));
   const axe = trouverAxe(tries, attributs, reg);
+  const chef = tries.find((p) => p.pdt_reference === meta?.ref_principale) ?? tries[0];
+  // Le chef ouvre la liste : tout ce qui lit `variantes[0]` — canonique, repli de
+  // `variantePourSlug` — désigne alors la référence maître sans le savoir.
+  const ordonnes = [chef, ...tries.filter((p) => p !== chef)];
 
-  const variantes = tries.map((produit) => {
+  const variantes = ordonnes.map((produit) => {
     const attrs = attributs[produit.pdt_reference];
     const slug = axe ? premier(attrs?.[axe.cle]) : '';
     return {
@@ -132,7 +150,8 @@ function construire<P extends AvecRef>(
       slug,
       libelle: axe && slug
         ? libelleDe(reg, axe.cle, slug)
-        : (attrs?.libelle || produit.pdt_reference),
+        : (produit.pdt_designation || produit.pdt_reference),
+      description: attrs?.description_courte ?? '',
       teinte: axe?.rendu === 'pastille' && slug ? teinteDe(reg, axe.cle, slug) : '',
       seoSlug: attrs?.seo_slug ?? '',
     };
@@ -140,11 +159,12 @@ function construire<P extends AvecRef>(
 
   return {
     clef,
-    chef: tries[0],
-    membres: tries,
+    chef,
+    description: meta?.description ?? '',
+    membres: ordonnes,
     variantes,
     attrs: variantes.map((v) => v.attrs),
-    fusion: fusionner(tries[0].pdt_reference, variantes.map((v) => v.attrs)),
+    fusion: fusionner(chef.pdt_reference, variantes.map((v) => v.attrs)),
     axe,
   };
 }
@@ -153,17 +173,24 @@ function construire<P extends AvecRef>(
 export function grouper<P extends AvecRef>(
   produits: P[],
   attributs: Record<string, ProductAttributes>,
-  reg: Registry
+  reg: Registry,
+  groupes: Record<string, ProductGroup> = {}
 ): Groupe<P>[] {
   const paquets = new Map<string, P[]>();
+  const codes = new Map<string, string>();
   for (const p of produits) {
-    const clef = clefGroupe(p.pdt_reference, attributs[p.pdt_reference], reg);
+    const attrs = attributs[p.pdt_reference];
+    const code = codeGroupe(attrs, reg);
+    const clef = code ? `g:${code}` : `r:${p.pdt_reference}`;
     const lot = paquets.get(clef);
     if (lot) lot.push(p);
-    else paquets.set(clef, [p]);
+    else { paquets.set(clef, [p]); codes.set(clef, code); }
   }
   const out: Groupe<P>[] = [];
-  paquets.forEach((membres, clef) => out.push(construire(clef, membres, attributs, reg)));
+  paquets.forEach((membres, clef) => {
+    const code = codes.get(clef) ?? '';
+    out.push(construire(clef, membres, attributs, reg, code ? groupes[code] : undefined));
+  });
   return out;
 }
 
@@ -176,20 +203,26 @@ export interface Declinaison {
   id: string;
   designation: string;
   sous_titre?: string;
-  variants: { label: string; ref: string }[];
+  /** Description de l'article, saisie dans la feuille GROUPES. */
+  description: string;
+  variants: { label: string; ref: string; description: string }[];
 }
 
-export function versDeclinaisons<P extends AvecRef & { pdt_designation?: string }>(
+export function versDeclinaisons<P extends AvecRef>(
   groupes: Groupe<P>[]
 ): Declinaison[] {
   return groupes
     .filter((g) => g.variantes.length > 1)
     .map((g) => ({
       id: g.clef,
-      designation:
-        g.chef.pdt_designation || g.variantes[0].attrs?.libelle || g.chef.pdt_reference,
+      designation: g.chef.pdt_designation || g.chef.pdt_reference,
       sous_titre: g.axe?.libelle,
-      variants: g.variantes.map((v) => ({ label: v.libelle, ref: v.produit.pdt_reference })),
+      description: g.description,
+      variants: g.variantes.map((v) => ({
+        label: v.libelle,
+        ref: v.produit.pdt_reference,
+        description: v.description,
+      })),
     }));
 }
 

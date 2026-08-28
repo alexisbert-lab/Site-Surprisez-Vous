@@ -7,13 +7,14 @@ import {
   getCachedAttributeRegistry,
   getCachedAttributeValues,
   getCachedProductAttributes,
+  getCachedProductGroups,
 } from '@/lib/server-cache';
 import CatalogueClient from './CatalogueClient';
 
 export default async function CataloguePage() {
   const [
     products, statCategories, marques, productMarques,
-    attributeDefs, attributeValues, productAttributes,
+    attributeDefs, attributeValues, productAttributes, productGroups,
   ] = await Promise.all([
     getCachedPublicProducts(),
     getCachedStatCategories(),
@@ -22,6 +23,7 @@ export default async function CataloguePage() {
     getCachedAttributeRegistry(),
     getCachedAttributeValues(),
     getCachedProductAttributes(),
+    getCachedProductGroups(),
   ]);
 
   return (
@@ -34,6 +36,7 @@ export default async function CataloguePage() {
         attributeDefs={attributeDefs}
         attributeValues={attributeValues}
         productAttributes={productAttributes}
+        productGroups={productGroups}
       />
     </Suspense>
   );

@@ -7,12 +7,13 @@ import {
   getCachedAttributeRegistry,
   getCachedAttributeValues,
   getCachedProductAttributes,
+  getCachedProductGroups,
 } from '@/lib/server-cache';
 
 export default async function ProCataloguePage() {
   const [
     products, stockSettings, statCategories,
-    attributeDefs, attributeValues, productAttributes,
+    attributeDefs, attributeValues, productAttributes, productGroups,
   ] = await Promise.all([
     getCachedProducts(),
     getCachedStockSettings(),
@@ -20,6 +21,7 @@ export default async function ProCataloguePage() {
     getCachedAttributeRegistry(),
     getCachedAttributeValues(),
     getCachedProductAttributes(),
+    getCachedProductGroups(),
   ]);
 
   return (
@@ -27,7 +29,7 @@ export default async function ProCataloguePage() {
       <ProCatalogueClient
         initialData={{
           products, stockSettings, statCategories,
-          attributeDefs, attributeValues, productAttributes,
+          attributeDefs, attributeValues, productAttributes, productGroups,
         }}
       />
     </Suspense>

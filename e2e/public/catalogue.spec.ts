@@ -28,18 +28,18 @@ test.describe('Catalogue public', () => {
 
   // Le référentiel d'attributs alimente le menu et les facettes. Tant que la feuille
   // n'est pas synchronisée, la page reste une grille simple : le test s'adapte.
-  test('le menu des rayons ouvre une sous-catégorie', async ({ page }) => {
-    const rayon = page.locator('nav button').filter({ hasText: /décoration|cadeaux|art de la table/i }).first();
-    if (!(await rayon.isVisible().catch(() => false))) test.skip();
+  test('le menu des categorie ouvre une sous-catégorie', async ({ page }) => {
+    const categorie = page.locator('nav button').filter({ hasText: /décoration|cadeaux|art de la table/i }).first();
+    if (!(await categorie.isVisible().catch(() => false))) test.skip();
 
-    await rayon.hover();
+    await categorie.hover();
     const sousCat = page.locator('nav ul ul button:not([disabled])').first();
     await expect(sousCat).toBeVisible({ timeout: 5000 });
     await sousCat.click();
 
-    // Le rayon choisi part dans l'URL et le fil d'Ariane apparaît.
+    // La catégorie choisie part dans l'URL et le fil d'Ariane apparaît.
     await expect(page).toHaveURL(/sous_categorie=/);
-    await expect(page.getByRole('button', { name: /tous les rayons/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /tout le catalogue/i })).toBeVisible();
   });
 
   test('une facette se pose et se retire', async ({ page }) => {

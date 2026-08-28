@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { formatEan, filterArticlesVisiblesWithStatCats, type Product } from '@/lib/firestore/products';
 import {
-  type AttributeDef, type AttributeValue, type ProductAttributes,
+  type AttributeDef, type AttributeValue, type ProductAttributes, type ProductGroup,
 } from '@/lib/firestore/attributes';
 import { buildRegistry } from '@/lib/attributes';
 import { grouper, versDeclinaisons, type Declinaison } from '@/lib/declinaisons';
@@ -26,6 +26,8 @@ interface DisplayItem {
   pdt_reference?: string;
   pdt_designation: string;
   sous_titre?: string;
+  /** Description de l'article décliné, saisie dans la feuille GROUPES. */
+  description_groupe?: string;
   pdt_code_stat?: string;
   pdt_etat?: string;
   stock_physique?: number;
@@ -40,6 +42,7 @@ interface InitialData {
   attributeDefs: AttributeDef[];
   attributeValues: AttributeValue[];
   productAttributes: Record<string, ProductAttributes>;
+  productGroups: Record<string, ProductGroup>;
 }
 
 function buildItems(products: Product[], declinations: Declinaison[]): DisplayItem[] {
@@ -50,7 +53,12 @@ function buildItems(products: Product[], declinations: Declinaison[]): DisplayIt
     .map((p) => ({ ...p, quantite_colisage: p.quantite_colisage || 1 }));
   const entriesDec: DisplayItem[] = declinations
     .filter((dec) => dec.variants?.some((v) => products.some((p) => p.pdt_reference === v.ref)))
-    .map((dec) => ({ _declinaisonId: dec.id, pdt_designation: dec.designation, sous_titre: dec.sous_titre }));
+    .map((dec) => ({
+      _declinaisonId: dec.id,
+      pdt_designation: dec.designation,
+      sous_titre: dec.sous_titre,
+      description_groupe: dec.description,
+    }));
   return [...entriesDec, ...articlesNormaux];
 }
 
@@ -91,8 +99,11 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
   // `groupe` du classeur, et les libellés de variante viennent du référentiel.
   const declinationsList = useMemo(() => {
     const reg = buildRegistry(initialData.attributeDefs, initialData.attributeValues);
-    return versDeclinaisons(grouper(authorizedProducts, initialData.productAttributes, reg));
-  }, [authorizedProducts, initialData.attributeDefs, initialData.attributeValues, initialData.productAttributes]);
+    return versDeclinaisons(
+      grouper(authorizedProducts, initialData.productAttributes, reg, initialData.productGroups)
+    );
+  }, [authorizedProducts, initialData.attributeDefs, initialData.attributeValues,
+      initialData.productAttributes, initialData.productGroups]);
 
   const items = useMemo(() => buildItems(authorizedProducts, declinationsList), [authorizedProducts, declinationsList]);
   const catalogueBrut = authorizedProducts;
@@ -577,8 +588,11 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
                 if (p._declinaisonId) {
                   return (
                     <div key={p._declinaisonId} className="col-span-full flex items-center gap-3 pt-3 pb-1 border-b border-border">
-                      <span className="text-sm font-bold text-ink">{p.pdt_designation}</span>
-                      {p.sous_titre && <span className="text-xs text-ink-secondary">{p.sous_titre}</span>}
+                      <span className="text-sm font-bold text-ink shrink-0">{p.pdt_designation}</span>
+                      {p.sous_titre && <span className="text-xs text-ink-secondary shrink-0">{p.sous_titre}</span>}
+                      {p.description_groupe && (
+                        <span className="text-xs text-ink-secondary truncate min-w-0">{p.description_groupe}</span>
+                      )}
                       <button
                         onClick={() => openDecModal(p._declinaisonId!)}
                         className="ml-auto text-xs px-3 py-1 bg-sv-primary text-white rounded-full font-semibold hover:bg-sv-primary-dark transition-colors cursor-pointer"
@@ -678,22 +692,32 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
         {modalDec && (
           <>
             <ModalTitle>{modalDec.designation}</ModalTitle>
-            <p className="text-sm text-ink-secondary mb-4">{modalDec.sous_titre}</p>
-            <div className="overflow-x-auto rounded-lg border border-border">
+            {modalDec.sous_titre && <p className="text-sm text-ink-secondary">{modalDec.sous_titre}</p>}
+            {modalDec.description && (
+              <p className="text-sm text-ink-secondary mt-1">{modalDec.description}</p>
+            )}
+            <div className="overflow-x-auto rounded-lg border border-border mt-4">
               <table className="w-full border-collapse text-sm">
                 <thead><tr className="bg-sv-grey-light">
                   <th className="text-left px-3 py-2 font-semibold text-ink-secondary border-b border-border">Variante</th>
                   <th className="text-left px-3 py-2 font-semibold text-ink-secondary border-b border-border">Référence</th>
+                  <th className="text-left px-3 py-2 font-semibold text-ink-secondary border-b border-border">Description</th>
+                  <th className="text-left px-3 py-2 font-semibold text-ink-secondary border-b border-border">Stock</th>
                   <th className="text-left px-3 py-2 font-semibold text-ink-secondary border-b border-border">Prix</th>
                 </tr></thead>
                 <tbody>
                   {modalDec.variants.map((v) => {
                     const article = catalogueBrut.find((p) => p.pdt_reference === v.ref);
                     if (!article) return null;
+                    const stock = article.stock_physique || 0;
                     return (
                       <tr key={v.ref} className="border-b border-border/50">
                         <td className="px-3 py-2">{v.label}</td>
                         <td className="px-3 py-2 font-mono text-xs text-ink-secondary">{v.ref}</td>
+                        <td className="px-3 py-2 text-xs text-ink-secondary">{v.description || '—'}</td>
+                        <td className={`px-3 py-2 ${stock <= 0 ? 'text-sv-primary font-semibold' : ''}`}>
+                          {stock <= 0 ? 'Rupture' : stock}
+                        </td>
                         <td className="px-3 py-2 font-bold text-sv-primary">{(() => { const px = priceOf(v.ref, article?.prix_vente); return px != null ? `${px.toFixed(2)} €` : '—'; })()}</td>
                       </tr>
                     );

@@ -46,7 +46,6 @@ export interface AttributeValue {
 /** Une ligne de la feuille EXPORT : les attributs d'une référence produit. */
 export interface ProductAttributes {
   ref: string;
-  libelle: string;
   statut: string;
   description_courte: string;
   seo_slug: string;
@@ -54,9 +53,22 @@ export interface ProductAttributes {
   [cle: string]: string | string[];
 }
 
+/**
+ * Une ligne de la feuille GROUPES : ce qu'un article décliné porte en propre,
+ * par-delà ses références. Sans elle, un groupe n'a ni chef désigné ni description.
+ */
+export interface ProductGroup {
+  groupe: string;
+  /** Référence maître : son image, sa désignation, son URL canonique. */
+  ref_principale: string;
+  /** Affichée tant que le maître est sélectionné, jamais sur une variante. */
+  description: string;
+}
+
 const REGISTRY_COLLECTION = 'attribute-registry';
 const VALUES_COLLECTION = 'attribute-values';
 const PRODUCT_ATTRIBUTES_COLLECTION = 'product-attributes';
+const PRODUCT_GROUPS_COLLECTION = 'product-groups';
 
 /**
  * Le référentiel peut être absent : collections pas encore créées, règles pas encore
@@ -96,4 +108,17 @@ export async function getProductAttributes(): Promise<Record<string, ProductAttr
     });
     return out;
   }, {} as Record<string, ProductAttributes>);
+}
+
+/** Indexé par code de groupe : c'est par lui que `clefGroupe` retrouve l'entrée. */
+export async function getProductGroups(): Promise<Record<string, ProductGroup>> {
+  return lireOuVide(PRODUCT_GROUPS_COLLECTION, async () => {
+    const snap = await getDocs(collection(db(), PRODUCT_GROUPS_COLLECTION));
+    const out: Record<string, ProductGroup> = {};
+    snap.docs.forEach((d) => {
+      const data = d.data() as ProductGroup;
+      if (data.groupe) out[data.groupe] = data;
+    });
+    return out;
+  }, {} as Record<string, ProductGroup>);
 }

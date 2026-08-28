@@ -11,7 +11,7 @@ import CookieBanner from '@/components/CookieBanner';
 import PageLoader from '@/components/PageLoader';
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
-  // Le méga-menu des rayons vit dans le header : les rayons sont atteignables
+  // Le méga-menu des catégories vit dans le header : les catégories sont atteignables
   // depuis toutes les pages, pas seulement depuis le catalogue.
   const [headerContent, attributeDefs, attributeValues, compteursMenu] = await Promise.all([
     getCachedPageContent('header'),
@@ -37,7 +37,7 @@ export default async function PublicLayout({ children }: { children: React.React
         attributeValues={attributeValues}
         compteursMenu={compteursMenu}
       />
-      <main className="flex-1" style={{ paddingTop: 154 }}>
+      <main className="flex-1" style={{ paddingTop: 'var(--sv-header-h, 154px)' }}>
         {children}
       </main>
       <Footer />

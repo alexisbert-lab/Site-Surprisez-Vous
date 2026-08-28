@@ -2,7 +2,7 @@
  * Attribution automatique de contenu de test.
  *
  * L'export ERP ne porte qu'une référence et une désignation. Pour que le menu
- * des rayons et les facettes aient de la matière en local, on déduit des
+ * des categorie et les facettes aient de la matière en local, on déduit des
  * attributs plausibles de la désignation. C'est du **contenu de test** : il ne
  * quitte jamais `.local-data/`, et les références décrites dans le classeur
  * gardent toujours leurs vraies valeurs.
@@ -17,10 +17,10 @@ const sansAccent = (s) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
 
 /**
- * Rayons, dans l'ordre : la première règle qui accroche gagne. Les familles
+ * categorie, dans l'ordre : la première règle qui accroche gagne. Les familles
  * étroites passent avant les larges — « ARCHE DE BALLONS » avant « BALLON ».
  */
-const RAYONS = [
+const categorie = [
   [/\bARCHE\b/, 'arche de ballons'],
   [/\bKIT\b.*\bBALLON/, 'kit de ballons'],
   [/\bBALLON\S*\b.*\bETOILE|\bETOILE\b.*\bBALLON|BALLON.*\b3D\b/, 'ballons etoile 3d'],
@@ -173,7 +173,7 @@ const tousMatchs = (regles, texte, max) => {
 };
 
 /** Matière évidente quand la désignation ne la dit pas : une serviette est en papier. */
-const MATIERE_PAR_RAYON = {
+const MATIERE_PAR_CATEGORIE = {
   'serviettes en papier': 'papier',
   'confettis papier': 'papier',
   'guirlandes fanions': 'papier',
@@ -192,15 +192,15 @@ const MATIERE_PAR_RAYON = {
 
 /**
  * Retourne un `ProductAttributes` déduit de la désignation, ou null si aucune
- * règle de rayon n'accroche : mieux vaut un produit sans attributs qu'un produit
- * rangé au mauvais rayon.
+ * règle de catégorie n'accroche : mieux vaut un produit sans attributs qu'un produit
+ * rangé à la mauvaise catégorie.
  */
 export function deriverAttributs(produit, registre, parentDe, slugsParAttribut) {
   const texte = sansAccent(produit.pdt_designation || '');
-  const sousCat = premierMatch(RAYONS, texte);
+  const sousCat = premierMatch(categorie, texte);
   if (!sousCat) return null;
 
-  const attrs = { ref: produit.pdt_reference, libelle: produit.pdt_designation, statut: 'actif' };
+  const attrs = { ref: produit.pdt_reference, statut: 'actif' };
 
   for (const def of registre) {
     const max = def.slots > 1 ? def.slots : 1;
@@ -211,7 +211,7 @@ export function deriverAttributs(produit, registre, parentDe, slugsParAttribut) 
     else if (def.cle === 'ignifuge') vals = [premierMatch(MOTS.ignifuge, texte) || 'non'];
     else if (def.cle === 'matiere') {
       vals = tousMatchs(MOTS.matiere, texte, max);
-      if (vals.length === 0 && MATIERE_PAR_RAYON[sousCat]) vals = [MATIERE_PAR_RAYON[sousCat]];
+      if (vals.length === 0 && MATIERE_PAR_CATEGORIE[sousCat]) vals = [MATIERE_PAR_CATEGORIE[sousCat]];
     }
     else if (MOTS[def.cle]) vals = tousMatchs(MOTS[def.cle], texte, max);
     vals = vals.filter((v) => v && (slugsParAttribut[def.cle]?.has(v) ?? false));

@@ -13,13 +13,14 @@ import { getCatalogues, type Catalogue } from './firestore/catalogues';
 import type { RevendeurResult } from './firestore/revendeurs';
 import {
   getThemeColors, getHeaderSettings, getFooterSettings,
+  DEFAULT_COLORS, DEFAULT_HEADER, DEFAULT_FOOTER,
   type ThemeColors, type HeaderSettings, type FooterSettings,
 } from './firestore/site-settings';
 import { getPageContent } from './firestore/page-content';
 import { getMarques, getProductMarques, type Marque } from './firestore/marques';
 import {
-  getAttributeRegistry, getAttributeValues, getProductAttributes,
-  type AttributeDef, type AttributeValue, type ProductAttributes,
+  getAttributeRegistry, getAttributeValues, getProductAttributes, getProductGroups,
+  type AttributeDef, type AttributeValue, type ProductAttributes, type ProductGroup,
 } from './firestore/attributes';
 import { lireLocal } from './local-data';
 
@@ -163,10 +164,18 @@ const _productAttributes = unstable_cache(
 export const getCachedProductAttributes = async (): Promise<Record<string, ProductAttributes>> =>
   lireLocal<Record<string, ProductAttributes>>('product-attributes') ?? _productAttributes();
 
+const _productGroups = unstable_cache(
+  async (): Promise<Record<string, ProductGroup>> => getProductGroups(),
+  ['product-groups'],
+  CACHE_OPTS(['product-groups'])
+);
+export const getCachedProductGroups = async (): Promise<Record<string, ProductGroup>> =>
+  lireLocal<Record<string, ProductGroup>>('product-groups') ?? _productGroups();
+
 /**
  * Compteurs du méga-menu, par slug de sous-catégorie. Le Header est rendu sur
  * toutes les pages : y sérialiser tout `product-attributes` coûterait cher pour
- * un simple nombre à droite de chaque rayon.
+ * un simple nombre à droite de chaque catégorie.
  */
 export async function getCachedCompteursMenu(): Promise<Record<string, number>> {
   const registre = await getCachedAttributeRegistry();
@@ -280,29 +289,46 @@ export function invalidateCachedTarifLines(gridId?: string): void {
   _tarifLines?.delete(gridId);
 }
 
-export const getCachedThemeColors = unstable_cache(
+// Réglages du site : même repli local que les produits, et il passe devant
+// unstable_cache pour qu'une couleur changée dans l'éditeur se voie au rechargement.
+const _themeColors = unstable_cache(
   async (): Promise<ThemeColors> => getThemeColors(),
   ['theme-colors'],
   CACHE_OPTS(['site-settings'])
 );
+export const getCachedThemeColors = async (): Promise<ThemeColors> => {
+  const local = lireLocal<{ theme?: Partial<ThemeColors> }>('site-settings');
+  return local ? { ...DEFAULT_COLORS, ...local.theme } : _themeColors();
+};
 
-export const getCachedHeaderSettings = unstable_cache(
+const _headerSettings = unstable_cache(
   async (): Promise<HeaderSettings> => getHeaderSettings(),
   ['header-settings'],
   CACHE_OPTS(['site-settings'])
 );
+export const getCachedHeaderSettings = async (): Promise<HeaderSettings> => {
+  const local = lireLocal<{ header?: Partial<HeaderSettings> }>('site-settings');
+  return local ? { ...DEFAULT_HEADER, ...local.header } : _headerSettings();
+};
 
-export const getCachedFooterSettings = unstable_cache(
+const _footerSettings = unstable_cache(
   async (): Promise<FooterSettings> => getFooterSettings(),
   ['footer-settings'],
   CACHE_OPTS(['site-settings'])
 );
+export const getCachedFooterSettings = async (): Promise<FooterSettings> => {
+  const local = lireLocal<{ footer?: Partial<FooterSettings> }>('site-settings');
+  return local ? { ...DEFAULT_FOOTER, ...local.footer } : _footerSettings();
+};
 
 // ── PageContent : store mutable par pageId (pas de TTL — patch via éditeur admin) ──
 let _pageContent: Map<string, Record<string, string>> | null = null;
 
 export async function getCachedPageContent(pageId: string): Promise<Record<string, string>> {
   if (process.env.NEXT_PHASE === 'phase-production-build') return {};
+  // Le fichier local fait autorité dès qu'il existe : l'éditeur vient d'écrire dedans.
+  const local = lireLocal<Record<string, Record<string, string>>>('page-content');
+  if (local) return local[pageId] ?? {};
   if (_pageContent === null) _pageContent = new Map();
   if (!_pageContent.has(pageId)) {
     // CF (Admin SDK, rapide) d'abord — évite un getDoc client-SDK lent côté serveur qui bloque le SSR.
