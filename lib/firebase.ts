@@ -11,7 +11,8 @@ const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'demo-key',
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'site-surprisez-vous.web.app',
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'site-surprisez-vous',
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || `https://site-surprisez-vous-default-rtdb.firebaseio.com`,
+  // L'instance RTDB est en europe-west1 : l'URL `firebaseio.com` (us-central) renvoie 404.
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || `https://site-surprisez-vous-default-rtdb.europe-west1.firebasedatabase.app`,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'site-surprisez-vous.appspot.com',
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',

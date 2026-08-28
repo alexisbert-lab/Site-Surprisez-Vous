@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Architecture Surprisez-Vous</title>
+<style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #FBFAF8;
+    --surface: #FFFFFF;
+    --surface-2: #F4F1EE;
+    --ink: #232028;
+    --ink-soft: #5C5662;
+    --line: #E2DDDA;
+    --accent: #C73E6B;
+    --accent-soft: #F9E9EF;
+    --lane-next: #2C8C82;
+    --lane-next-soft: #E4F1EF;
+    --lane-fire: #B07417;
+    --lane-fire-soft: #F7EEDD;
+    --lane-erp: #6B5CA5;
+    --lane-erp-soft: #ECE8F5;
+    --chip-bg: #F4F1EE;
+    --shadow: 0 1px 2px rgba(35,32,40,.05), 0 8px 24px -18px rgba(35,32,40,.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1B181F;
+      --surface: #242028;
+      --surface-2: #2C2731;
+      --ink: #EDE9F0;
+      --ink-soft: #A79FB0;
+      --line: #3A3441;
+      --accent: #E5799D;
+      --accent-soft: #3C2531;
+      --lane-next: #5FBFB3;
+      --lane-next-soft: #1F3532;
+      --lane-fire: #D9A54A;
+      --lane-fire-soft: #3A3020;
+      --lane-erp: #A493D6;
+      --lane-erp-soft: #2E2840;
+      --chip-bg: #2C2731;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -18px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1B181F;
+    --surface: #242028;
+    --surface-2: #2C2731;
+    --ink: #EDE9F0;
+    --ink-soft: #A79FB0;
+    --line: #3A3441;
+    --accent: #E5799D;
+    --accent-soft: #3C2531;
+    --lane-next: #5FBFB3;
+    --lane-next-soft: #1F3532;
+    --lane-fire: #D9A54A;
+    --lane-fire-soft: #3A3020;
+    --lane-erp: #A493D6;
+    --lane-erp-soft: #2E2840;
+    --chip-bg: #2C2731;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -18px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Public Sans", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  h1, h2, h3 {
+    font-family: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    font-size: .85em;
+  }
+  a { color: var(--accent); }
+
+  /* ── Header ─────────────────────────────────────────── */
+  .masthead {
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .masthead-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 56px 32px 44px;
+    position: relative;
+  }
+  .masthead .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  .masthead h1 {
+    font-size: clamp(34px, 5.4vw, 56px);
+    font-weight: 800;
+    max-width: 20ch;
+  }
+  .masthead h1 .brand { color: var(--accent); }
+  .masthead .standfirst {
+    max-width: 62ch;
+    color: var(--ink-soft);
+    margin: 18px 0 0;
+    font-size: 17px;
+  }
+  .confetti { position: absolute; inset: 0; pointer-events: none; }
+
+  /* ── Chiffres ───────────────────────────────────────── */
+  .figures {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    transform: translateY(-1px);
+  }
+  @media (min-width: 720px) {
+    .figures { margin: -30px auto 0; box-shadow: var(--shadow); }
+  }
+  .figures > div { background: var(--surface); padding: 14px 18px; }
+  .figures .n {
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: block;
+    line-height: 1.1;
+  }
+  .figures .l { font-size: 12.5px; color: var(--ink-soft); }
+
+  /* ── Layout ─────────────────────────────────────────── */
+  .shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .toc { display: none; }
+  }
+  .toc {
+    position: sticky;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13.5px;
+  }
+  .toc .toc-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .toc a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-left: 2px solid var(--line);
+  }
+  .toc a:hover, .toc a:focus-visible { color: var(--accent); border-left-color: var(--accent); }
+  .toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+  main { min-width: 0; }
+  section { scroll-margin-top: 24px; }
+  section + section { margin-top: 64px; border-top: 1px solid var(--line); padding-top: 48px; }
+  section > h2 {
+    font-size: 27px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .section-lede { color: var(--ink-soft); max-width: 68ch; margin: 0 0 24px; }
+  main p { max-width: 68ch; }
+  h3 { font-size: 18.5px; font-weight: 700; margin: 28px 0 8px; }
+
+  /* ── Figures / diagrammes ───────────────────────────── */
+  figure {
+    margin: 24px 0;
+    padding: 20px 20px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; min-width: 620px; max-width: 100%; height: auto; margin: 0 auto; }
+  figcaption { font-size: 13px; color: var(--ink-soft); margin-top: 12px; max-width: none; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    font-size: 12.5px; color: var(--ink-soft);
+    margin-top: 10px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  svg text { font-family: "Public Sans", system-ui, sans-serif; font-size: 12.5px; fill: var(--ink); }
+  svg .lbl { font-size: 11px; fill: var(--ink-soft); }
+  svg .mono-t { font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+  svg .box-t { font-weight: 600; }
+
+  /* ── Cartes zones ───────────────────────────────────── */
+  .zones {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .zone {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .zone header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .zone h3 { margin: 0; font-size: 17px; }
+  .zone .count {
+    font-size: 12px; font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 9px;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+  .zone p { font-size: 14px; color: var(--ink-soft); margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips code {
+    background: var(--chip-bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+
+  /* ── Tables ─────────────────────────────────────────── */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    margin: 20px 0;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th {
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ink-soft);
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td { padding: 10px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.fam { font-weight: 600; white-space: nowrap; }
+  td .soft { color: var(--ink-soft); }
+
+  /* ── Callout ────────────────────────────────────────── */
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 24px 0;
+    max-width: 74ch;
+  }
+  .callout strong:first-child { color: var(--accent); }
+  .callout p { margin: 6px 0 0; font-size: 14.5px; }
+
+  .cols-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  ul.tight { margin: 8px 0; padding-left: 20px; }
+  ul.tight li { margin: 6px 0; max-width: 66ch; }
+  ul.tight li::marker { color: var(--accent); }
+
+  footer.colophon {
+    border-top: 1px solid var(--line);
+    margin-top: 64px;
+    padding-top: 24px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .zone { transition: border-color .15s ease; }
+    .zone:hover { border-color: var(--accent); }
+  }
+</style>
+
+<header class="masthead">
+  <svg class="confetti" aria-hidden="true" viewBox="0 0 1100 240" preserveAspectRatio="xMaxYMin slice">
+    <g opacity="0.75">
+      <rect x="905" y="38"  width="11" height="11" rx="2" fill="var(--accent)"    transform="rotate(24 910 43)"/>
+      <rect x="968" y="92"  width="9"  height="9"  rx="2" fill="var(--lane-next)" transform="rotate(-18 972 96)"/>
+      <circle cx="1035" cy="52" r="5" fill="var(--lane-fire)"/>
+      <rect x="1012" y="128" width="12" height="12" rx="2" fill="var(--lane-erp)" transform="rotate(40 1018 134)"/>
+      <circle cx="948" cy="160" r="4" fill="var(--accent)"/>
+      <rect x="1062" y="96" width="9" height="9" rx="2" fill="var(--accent)" transform="rotate(-32 1066 100)"/>
+      <circle cx="880" cy="98" r="4" fill="var(--lane-next)"/>
+      <rect x="838" y="52" width="8" height="8" rx="2" fill="var(--lane-fire)" transform="rotate(12 842 56)"/>
+      <circle cx="1078" cy="170" r="6" fill="var(--lane-next)"/>
+      <rect x="922" y="204" width="9" height="9" rx="2" fill="var(--lane-fire)" transform="rotate(-24 926 208)"/>
+      <circle cx="994" cy="196" r="3.5" fill="var(--lane-erp)"/>
+    </g>
+  </svg>
+  <div class="masthead-inner">
+    <p class="eyebrow">Dossier technique</p>
+    <h1>L'architecture du site <span class="brand">Surprisez-Vous</span></h1>
+    <p class="standfirst">
+      Vitrine, espace pro et back-office sur une seule application Next.js, adossée à Firebase
+      et alimentée par l'ERP à travers Google Drive. Cette page montre comment les données
+      circulent — du classeur métier jusqu'à la fiche produit.
+    </p>
+  </div>
+</header>
+
+<div class="figures" role="list" aria-label="Le site en chiffres">
+  <div role="listitem"><span class="n">43</span><span class="l">pages App Router</span></div>
+  <div role="listitem"><span class="n">45</span><span class="l">composants React</span></div>
+  <div role="listitem"><span class="n">38</span><span class="l">modules lib/</span></div>
+  <div role="listitem"><span class="n">24</span><span class="l">Cloud Functions</span></div>
+  <div role="listitem"><span class="n">24</span><span class="l">collections Firestore</span></div>
+  <div role="listitem"><span class="n">47<span style="font-size:16px">+5</span></span><span class="l">tests unitaires + suites e2e</span></div>
+</div>
+
+<div class="shell">
+  <nav class="toc" aria-label="Sections">
+    <span class="toc-title">Sommaire</span>
+    <a href="#vue">Vue d'ensemble</a>
+    <a href="#zones">Zones de l'application</a>
+    <a href="#donnees">Données &amp; attributs</a>
+    <a href="#cache">Stratégie de cache</a>
+    <a href="#functions">Cloud Functions</a>
+    <a href="#securite">Sécurité</a>
+    <a href="#tests">Tests &amp; déploiement</a>
+  </nav>
+
+  <main>
+    <!-- ══════════════ VUE D'ENSEMBLE ══════════════ -->
+    <section id="vue">
+      <h2>Vue d'ensemble</h2>
+      <p class="section-lede">
+        Le site ne parle jamais directement à l'ERP : Google Drive sert de sas. Les exports CSV
+        y sont déposés, les Cloud Functions les ingèrent dans Firestore, et l'application Next.js
+        sert les trois publics depuis son cache serveur.
+      </p>
+
+      <figure>
+        <svg viewBox="0 0 960 420" role="img" aria-label="Flux général : l'ERP et le classeur d'attributs déposent des CSV sur Google Drive, les Cloud Functions les ingèrent dans Firestore, Storage et la Realtime Database ; l'application Next.js lit Firestore via son cache serveur et sert la vitrine, l'espace pro et le back-office ; les notifications temps réel reviennent par la Realtime Database.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+            </marker>
+          </defs>
+
+          <!-- Amont -->
+          <rect x="20" y="48" width="150" height="46" rx="8" fill="var(--lane-erp-soft)" stroke="var(--lane-erp)"/>
+          <text x="95" y="68" text-anchor="middle" class="box-t">ERP</text>
+          <text x="95" y="84" text-anchor="middle" class="lbl">exports CSV</text>
+
+          <rect x="20" y="130" width="150" height="46" rx="8" fill="var(--lane-erp-soft)" stroke="var(--lane-erp)"/>
+          <text x="95" y="150" text-anchor="middle" class="box-t">Classeur attributs</text>
+          <text x="95" y="166" text-anchor="middle" class="lbl">Google Sheets</text>
+
+          <rect x="240" y="88" width="140" height="48" rx="8" fill="var(--lane-erp-soft)" stroke="var(--lane-erp)"/>
+          <text x="310" y="108" text-anchor="middle" class="box-t">Google Drive</text>
+          <text x="310" y="124" text-anchor="middle" class="lbl">sas d'échange</text>
+
+          <line x1="170" y1="71" x2="238" y2="100" stroke="var(--ink-soft)" marker-end="url(#ar)"/>
+          <line x1="170" y1="153" x2="238" y2="124" stroke="var(--ink-soft)" marker-end="url(#ar)"/>
+          <text x="204" y="66" text-anchor="middle" class="lbl">dépôt CSV</text>
+
+          <!-- Functions -->
+          <rect x="448" y="86" width="168" height="52" rx="8" fill="var(--lane-fire-soft)" stroke="var(--lane-fire)"/>
+          <text x="532" y="106" text-anchor="middle" class="box-t">Cloud Functions</text>
+          <text x="532" y="123" text-anchor="middle" class="lbl">24 fonctions · sync, cron, triggers</text>
+
+          <line x1="380" y1="112" x2="446" y2="112" stroke="var(--ink-soft)" marker-end="url(#ar)"/>
+          <text x="413" y="103" text-anchor="middle" class="lbl">ingestion + diff</text>
+
+          <!-- Firebase -->
+          <rect x="700" y="20" width="240" height="230" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="5 4"/>
+          <text x="716" y="42" class="lbl" style="font-weight:700; letter-spacing:.08em">FIREBASE</text>
+
+          <rect x="724" y="56" width="192" height="42" rx="8" fill="var(--lane-fire-soft)" stroke="var(--lane-fire)"/>
+          <text x="820" y="82" text-anchor="middle" class="box-t">Firestore</text>
+
+          <rect x="724" y="118" width="192" height="40" rx="8" fill="var(--lane-fire-soft)" stroke="var(--lane-fire)"/>
+          <text x="820" y="143" text-anchor="middle" class="box-t">Storage</text>
+
+          <rect x="724" y="178" width="192" height="40" rx="8" fill="var(--lane-fire-soft)" stroke="var(--lane-fire)"/>
+          <text x="820" y="196" text-anchor="middle" class="box-t">Realtime Database</text>
+          <text x="820" y="211" text-anchor="middle" class="lbl">notifications</text>
+
+          <line x1="616" y1="96" x2="722" y2="80" stroke="var(--ink-soft)" marker-end="url(#ar)"/>
+          <text x="668" y="76" text-anchor="middle" class="lbl">collections</text>
+          <line x1="616" y1="118" x2="722" y2="136" stroke="var(--ink-soft)" marker-end="url(#ar)"/>
+          <text x="668" y="138" text-anchor="middle" class="lbl">PDF catalogues</text>
+          <line x1="600" y1="138" x2="722" y2="192" stroke="var(--ink-soft)" marker-end="url(#ar)"/>
+          <text x="650" y="182" text-anchor="middle" class="lbl">commandes, clients</text>
+
+          <!-- Site -->
+          <rect x="330" y="300" width="250" height="58" rx="8" fill="var(--lane-next-soft)" stroke="var(--lane-next)"/>
+          <text x="455" y="322" text-anchor="middle" class="box-t">Next.js 16 — App Hosting</text>
+          <text x="455" y="340" text-anchor="middle" class="lbl">server-cache 24 h · routes /api</text>
+
+          <line x1="580" y1="310" x2="740" y2="102" stroke="var(--lane-next)" marker-end="url(#ar)"/>
+          <text x="695" y="230" text-anchor="middle" class="lbl" fill="var(--lane-next)">lectures typées lib/firestore</text>
+
+          <!-- Clients -->
+          <rect x="20" y="272" width="150" height="38" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="95" y="296" text-anchor="middle" class="box-t">Vitrine publique</text>
+          <rect x="20" y="320" width="150" height="38" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="95" y="344" text-anchor="middle" class="box-t">Espace pro</text>
+          <rect x="20" y="368" width="150" height="38" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="95" y="392" text-anchor="middle" class="box-t">Back-office admin</text>
+
+          <line x1="170" y1="330" x2="328" y2="330" stroke="var(--ink-soft)" marker-end="url(#ar)"/>
+          <text x="249" y="322" text-anchor="middle" class="lbl">pages rendues serveur</text>
+
+          <!-- RTDB vers clients -->
+          <path d="M 820 218 C 820 290, 400 388, 174 388" fill="none" stroke="var(--ink-soft)" stroke-dasharray="4 4" marker-end="url(#ar)"/>
+          <text x="560" y="386" text-anchor="middle" class="lbl">cloches admin &amp; pro (temps réel)</text>
+
+          <!-- Auth -->
+          <rect x="640" y="300" width="130" height="42" rx="8" fill="var(--lane-fire-soft)" stroke="var(--lane-fire)"/>
+          <text x="705" y="318" text-anchor="middle" class="box-t">Auth</text>
+          <text x="705" y="333" text-anchor="middle" class="lbl">claim admin</text>
+          <line x1="638" y1="322" x2="582" y2="324" stroke="var(--ink-soft)" marker-end="url(#ar)"/>
+        </svg>
+        <figcaption>
+          De gauche à droite : l'amont métier dépose, les fonctions ingèrent, Firestore centralise,
+          Next.js sert. Le seul flux qui redescend vers le navigateur sans passer par Next.js,
+          ce sont les notifications temps réel.
+        </figcaption>
+        <div class="legend" aria-hidden="true">
+          <span><i style="background:var(--lane-erp)"></i> Amont métier (ERP, Drive)</span>
+          <span><i style="background:var(--lane-fire)"></i> Firebase</span>
+          <span><i style="background:var(--lane-next)"></i> Application Next.js</span>
+          <span><i style="background:var(--accent)"></i> Publics</span>
+        </div>
+      </figure>
+    </section>
+
+    <!-- ══════════════ ZONES ══════════════ -->
+    <section id="zones">
+      <h2>Zones de l'application</h2>
+      <p class="section-lede">
+        Une seule application, quatre territoires. Les groupes de routes de l'App Router
+        (<code>(public)</code>, <code>admin</code>, <code>pro</code>) portent chacun leur layout,
+        leur garde d'authentification et leur navigation.
+      </p>
+
+      <div class="zones">
+        <article class="zone">
+          <header><h3>Vitrine publique</h3><span class="count">18 pages</span></header>
+          <p>Accueil animé, catalogue par rayons piloté par les attributs, fiches produit avec
+          déclinaisons, showroom three.js, carte des revendeurs, tunnel d'inscription pro.</p>
+          <div class="chips">
+            <code>/</code><code>/catalogue</code><code>/produit/[slug]</code><code>/univers</code>
+            <code>/showroom</code><code>/revendeur</code><code>/espace-pro</code><code>/pro/inscription</code>
+            <code>/connexion</code><code>/mentions-legales</code>
+          </div>
+        </article>
+
+        <article class="zone">
+          <header><h3>Espace pro</h3><span class="count">9 pages · Auth</span></header>
+          <p>Catalogue avec tarifs négociés (<code>useTarif</code> résout la grille du client),
+          panier et commande express, dashboard, espace client, notifications de commande.</p>
+          <div class="chips">
+            <code>/pro/catalogue</code><code>/pro/panier</code><code>/pro/commande-express</code>
+            <code>/pro/dashboard</code><code>/pro/espace-client/*</code>
+          </div>
+        </article>
+
+        <article class="zone">
+          <header><h3>Back-office admin</h3><span class="count">16 pages · claim</span></header>
+          <p>Catalogue et attributs, CRM (~3 800 clients servis par la fonction de cache),
+          commandes, tarifs, marketing, statistiques, pilotage des syncs — et l'éditeur qui
+          modifie la vitrine en place, dans la page.</p>
+          <div class="chips">
+            <code>/admin/catalogue</code><code>/admin/crm</code><code>/admin/commandes</code>
+            <code>/admin/tarifs</code><code>/admin/editeur</code><code>/admin/sync</code>
+            <code>/admin/statistiques</code>
+          </div>
+        </article>
+
+        <article class="zone">
+          <header><h3>API interne</h3><span class="count">5 routes</span></header>
+          <p>Invalidation du cache serveur par tag, relais vers la fonction de cache, warmup,
+          aides aux tests e2e. Les routes sensibles exigent le secret <code>CACHE_SECRET</code>.</p>
+          <div class="chips">
+            <code>POST /api/revalidate</code><code>/api/cache/[collection]</code>
+            <code>/api/cache/patch</code><code>GET /api/warmup</code><code>/api/e2e/*</code>
+          </div>
+        </article>
+      </div>
+
+      <h3>L'éditeur de contenu en place</h3>
+      <p>
+        Depuis <code>/admin/editeur</code>, l'admin voit la vitrine en iframe
+        (<code>(editor-preview)</code> fournit des rendus isolés du header et du footer) et
+        clique directement sur les textes, images et blocs à modifier. Les composants
+        <code>components/editable/</code> persistent dans Firestore, et l'iframe dialogue avec
+        l'éditeur par <code>postMessage</code> (<code>iframe-edit-context</code>).
+      </p>
+    </section>
+
+    <!-- ══════════════ DONNÉES ══════════════ -->
+    <section id="donnees">
+      <h2>Données &amp; attributs</h2>
+      <p class="section-lede">
+        Toutes les données vivent dans Firestore, un module TypeScript par collection dans
+        <code>lib/firestore/</code> — seul endroit du code qui parle à la base. Pages et
+        composants n'importent jamais le SDK directement.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Domaine</th><th>Collections</th><th>Alimentation</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="fam">Catalogue</td>
+              <td><code>products</code> <code>categories</code> <code>stat-categories</code>
+                  <code>product-groups</code> <code>marques</code> <code>product-marques</code>
+                  <code>evenements</code> <code>catalogues</code></td>
+              <td class="soft">Sync ERP + back-office</td>
+            </tr>
+            <tr>
+              <td class="fam">Attributs</td>
+              <td><code>attribute-registry</code> <code>attribute-values</code> <code>product-attributes</code></td>
+              <td class="soft">Classeur Sheets via <code>syncAttributs</code></td>
+            </tr>
+            <tr>
+              <td class="fam">Commerce</td>
+              <td><code>orders</code> <code>commandes</code> <code>tarifs/lignes</code>
+                  <code>clients</code> <code>pro-requests</code> <code>users</code></td>
+              <td class="soft">Site (commandes pro) + sync ERP</td>
+            </tr>
+            <tr>
+              <td class="fam">Contenu &amp; vitrine</td>
+              <td><code>contenu-pages</code> <code>page-content</code> <code>settings</code>
+                  <code>marketing</code> <code>groupes-contact</code></td>
+              <td class="soft">Back-office (éditeur en place)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Le référentiel d'attributs, du classeur à la fiche produit</h3>
+      <p>
+        Le classeur Google Sheets est la source de vérité métier : c'est là que se décrivent
+        univers, occasions, thèmes, couleurs et matières. La jointure avec l'ERP se fait sur
+        <code>ref</code> (classeur) ↔ <code>pdt_reference</code> (ERP).
+      </p>
+
+      <figure>
+        <svg viewBox="0 0 920 210" role="img" aria-label="Pipeline des attributs : le classeur Google Sheets exporte trois CSV sur Drive, la fonction syncAttributs les ingère dans trois collections Firestore, que le site charge pour regrouper les déclinaisons et construire le catalogue par rayons et la fiche produit.">
+          <defs>
+            <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+            </marker>
+          </defs>
+
+          <rect x="16" y="60" width="160" height="80" rx="8" fill="var(--lane-erp-soft)" stroke="var(--lane-erp)"/>
+          <text x="96" y="84" text-anchor="middle" class="box-t">Classeur Sheets</text>
+          <text x="96" y="102" text-anchor="middle" class="lbl">3 feuilles : attributs,</text>
+          <text x="96" y="117" text-anchor="middle" class="lbl">valeurs, produits</text>
+
+          <rect x="236" y="52" width="176" height="96" rx="8" fill="var(--lane-erp-soft)" stroke="var(--lane-erp)"/>
+          <text x="324" y="74" text-anchor="middle" class="box-t">CSV sur Drive</text>
+          <text x="324" y="94" text-anchor="middle" class="mono-t">SV_ATTRIBUTS.csv</text>
+          <text x="324" y="110" text-anchor="middle" class="mono-t">SV_VALEURS.csv</text>
+          <text x="324" y="126" text-anchor="middle" class="mono-t">SV_PRODUITS.csv</text>
+
+          <line x1="176" y1="100" x2="234" y2="100" stroke="var(--ink-soft)" marker-end="url(#ar2)"/>
+          <text x="205" y="91" text-anchor="middle" class="lbl">export</text>
+
+          <rect x="472" y="52" width="180" height="96" rx="8" fill="var(--lane-fire-soft)" stroke="var(--lane-fire)"/>
+          <text x="562" y="74" text-anchor="middle" class="box-t">Firestore</text>
+          <text x="562" y="94" text-anchor="middle" class="mono-t">attribute-registry</text>
+          <text x="562" y="110" text-anchor="middle" class="mono-t">attribute-values</text>
+          <text x="562" y="126" text-anchor="middle" class="mono-t">product-attributes</text>
+
+          <line x1="412" y1="100" x2="470" y2="100" stroke="var(--ink-soft)" marker-end="url(#ar2)"/>
+          <text x="441" y="91" text-anchor="middle" class="mono-t" style="fill:var(--ink-soft)">syncAttributs</text>
+
+          <rect x="712" y="30" width="192" height="60" rx="8" fill="var(--lane-next-soft)" stroke="var(--lane-next)"/>
+          <text x="808" y="54" text-anchor="middle" class="box-t">Catalogue par rayons</text>
+          <text x="808" y="72" text-anchor="middle" class="mono-t">/catalogue</text>
+
+          <rect x="712" y="112" width="192" height="60" rx="8" fill="var(--lane-next-soft)" stroke="var(--lane-next)"/>
+          <text x="808" y="136" text-anchor="middle" class="box-t">Fiche produit</text>
+          <text x="808" y="154" text-anchor="middle" class="mono-t">/produit/[slug]</text>
+
+          <line x1="652" y1="84" x2="710" y2="64" stroke="var(--ink-soft)" marker-end="url(#ar2)"/>
+          <line x1="652" y1="116" x2="710" y2="138" stroke="var(--ink-soft)" marker-end="url(#ar2)"/>
+          <text x="681" y="108" text-anchor="middle" class="lbl">lib/attributes</text>
+          <text x="681" y="135" text-anchor="middle" class="lbl">+ déclinaisons</text>
+        </svg>
+        <figcaption>
+          Un aller simple : la saisie métier reste dans le classeur, le site ne fait que lire.
+          <code>lib/declinaisons.ts</code> regroupe ensuite les références en déclinaisons
+          (couleur, taille…) affichées sur la fiche.
+        </figcaption>
+      </figure>
+
+      <div class="callout">
+        <strong>Mode local — zéro lecture facturée.</strong>
+        <p>
+          Avec <code>SV_LOCAL_DATA=1</code>, toute la couche <code>lib/firestore/</code> lit des
+          fixtures JSON dans <code>.local-data/</code> au lieu de Firestore. Les fixtures viennent
+          de <code>npm run local:data</code> (snapshot réel) ou <code>-- --demo</code> (jeu de
+          démonstration hors ligne). On développe et on démontre sans toucher au quota.
+        </p>
+      </div>
+    </section>
+
+    <!-- ══════════════ CACHE ══════════════ -->
+    <section id="cache">
+      <h2>Stratégie de cache</h2>
+      <p class="section-lede">
+        L'objectif : qu'une visite publique ne coûte (presque) aucune lecture Firestore.
+        Trois niveaux s'empilent, du serveur au navigateur.
+      </p>
+
+      <figure>
+        <svg viewBox="0 0 900 330" role="img" aria-label="Trois niveaux de cache : le visiteur passe par le cache serveur de Next.js qui ne lit Firestore qu'en cas d'expiration ; le back-office lit des snapshots servis par la fonction cacheData ; le navigateur admin garde une copie en localStorage. Le cache serveur est réchauffé par warmupCache et invalidé par tag via /api/revalidate.">
+          <defs>
+            <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+            </marker>
+          </defs>
+
+          <!-- Niveau 1 -->
+          <text x="20" y="34" class="lbl" style="font-weight:700">NIVEAU 1 · SERVEUR</text>
+          <rect x="20" y="46" width="140" height="44" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="90" y="73" text-anchor="middle" class="box-t">Visiteur</text>
+
+          <rect x="250" y="42" width="240" height="52" rx="8" fill="var(--lane-next-soft)" stroke="var(--lane-next)"/>
+          <text x="370" y="63" text-anchor="middle" class="box-t">server-cache</text>
+          <text x="370" y="80" text-anchor="middle" class="lbl">unstable_cache · 24 h · tags</text>
+
+          <rect x="700" y="100" width="180" height="52" rx="8" fill="var(--lane-fire-soft)" stroke="var(--lane-fire)"/>
+          <text x="790" y="122" text-anchor="middle" class="box-t">Firestore</text>
+          <text x="790" y="139" text-anchor="middle" class="lbl">lectures facturées</text>
+
+          <line x1="160" y1="68" x2="248" y2="68" stroke="var(--ink-soft)" marker-end="url(#ar3)"/>
+          <line x1="490" y1="72" x2="698" y2="112" stroke="var(--ink-soft)" stroke-dasharray="4 4" marker-end="url(#ar3)"/>
+          <text x="592" y="80" text-anchor="middle" class="lbl">seulement si expiré</text>
+
+          <!-- Niveau 2 -->
+          <text x="20" y="176" class="lbl" style="font-weight:700">NIVEAU 2 · FONCTION DE CACHE</text>
+          <rect x="20" y="188" width="140" height="44" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="90" y="207" text-anchor="middle" class="box-t">Back-office</text>
+          <text x="90" y="223" text-anchor="middle" class="lbl">CRM, catalogue</text>
+
+          <rect x="250" y="184" width="240" height="52" rx="8" fill="var(--lane-fire-soft)" stroke="var(--lane-fire)"/>
+          <text x="370" y="205" text-anchor="middle" class="box-t">CF cacheData</text>
+          <text x="370" y="222" text-anchor="middle" class="lbl">snapshots de collections · 300 s</text>
+
+          <line x1="160" y1="210" x2="248" y2="210" stroke="var(--ink-soft)" marker-end="url(#ar3)"/>
+          <line x1="490" y1="196" x2="698" y2="140" stroke="var(--ink-soft)" stroke-dasharray="4 4" marker-end="url(#ar3)"/>
+
+          <!-- Niveau 3 -->
+          <text x="20" y="292" class="lbl" style="font-weight:700">NIVEAU 3 · NAVIGATEUR</text>
+          <rect x="250" y="270" width="240" height="46" rx="8" fill="var(--surface-2)" stroke="var(--line)"/>
+          <text x="370" y="289" text-anchor="middle" class="box-t">localStorage</text>
+          <text x="370" y="306" text-anchor="middle" class="lbl">client-cache · TTL + version</text>
+          <line x1="90" y1="232" x2="90" y2="293" stroke="var(--ink-soft)" fill="none"/>
+          <line x1="90" y1="293" x2="248" y2="293" stroke="var(--ink-soft)" marker-end="url(#ar3)"/>
+
+          <!-- Entretien du niveau 1 -->
+          <rect x="560" y="230" width="320" height="86" rx="8" fill="none" stroke="var(--line)" stroke-dasharray="5 4"/>
+          <text x="576" y="252" class="lbl" style="font-weight:700">ENTRETIEN DU NIVEAU 1</text>
+          <text x="576" y="274" class="lbl">warmupCache (cron, heures ouvrées) → GET /api/warmup</text>
+          <text x="576" y="294" class="lbl">écriture admin / sync → POST /api/revalidate (par tag)</text>
+          <path d="M 560 262 C 480 240, 440 150, 415 96" fill="none" stroke="var(--lane-next)" stroke-dasharray="4 4" marker-end="url(#ar3)"/>
+        </svg>
+        <figcaption>
+          Le trait plein est le chemin nominal ; le pointillé n'est emprunté qu'en cas de cache
+          expiré. L'invalidation est ciblée : une écriture admin ne purge que le tag concerné.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ══════════════ FUNCTIONS ══════════════ -->
+    <section id="functions">
+      <h2>Cloud Functions</h2>
+      <p class="section-lede">
+        24 fonctions dans <code>functions/index.js</code> (~1 900 lignes), en cinq familles.
+        Les syncs comparent avant d'écrire : un CSV inchangé ne coûte aucune écriture.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Famille</th><th>Fonctions</th><th>Déclencheur</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="fam">Sync ERP</td>
+              <td><code>syncArticles</code> <code>syncTarifs</code> <code>syncClients</code>
+                  <code>syncCommandes</code> <code>syncColisage</code> <code>syncStatCategories</code>
+                  <code>syncAttributs</code> <code>syncDossierCsv</code></td>
+              <td class="soft">HTTP + cron</td>
+              <td class="soft">CSV Drive → Firestore, avec diff</td>
+            </tr>
+            <tr>
+              <td class="fam">Catalogues PDF</td>
+              <td><code>syncCatalogues</code> <code>syncCataloguesMeta</code>
+                  <code>syncClientCatalogues</code> <code>syncOneCatalogue</code> <code>listCatalogueFiles</code></td>
+              <td class="soft">HTTP</td>
+              <td class="soft">Drive → Storage + métadonnées</td>
+            </tr>
+            <tr>
+              <td class="fam">Planifiées</td>
+              <td><code>syncQuotidien</code> <code>warmupCache</code> <code>autoRefreshInstagramToken</code></td>
+              <td class="soft">Cron</td>
+              <td class="soft">Sync journalière · réchauffage du cache · token Instagram (mensuel)</td>
+            </tr>
+            <tr>
+              <td class="fam">Triggers Firestore</td>
+              <td><code>sendOrderEmail</code> <code>onOrderStatusChange</code> <code>setAdminClaim</code></td>
+              <td class="soft"><code>orders</code> · <code>users</code></td>
+              <td class="soft">E-mail de commande · notification RTDB client · claim admin</td>
+            </tr>
+            <tr>
+              <td class="fam">HTTP divers</td>
+              <td><code>cacheData</code> <code>instagramFeed</code> <code>verifierRuptures</code></td>
+              <td class="soft">HTTP</td>
+              <td class="soft">Cache de collections · flux Instagram · contrôle de ruptures</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══════════════ SÉCURITÉ ══════════════ -->
+    <section id="securite">
+      <h2>Sécurité</h2>
+      <p class="section-lede">
+        Le rôle admin n'est pas un champ en base : c'est un custom claim Firebase, posé
+        automatiquement et vérifié partout — règles Firestore comme layouts.
+      </p>
+      <ul class="tight">
+        <li><strong>Claim admin automatique</strong> — le trigger <code>setAdminClaim</code> pose le
+            custom claim à l'écriture de <code>users/{uid}</code> ; <code>app/admin/layout.tsx</code>
+            et les règles s'appuient dessus.</li>
+        <li><strong>Règles versionnées</strong> — <code>firestore.rules</code> (catalogue lisible
+            publiquement, écritures réservées admin, données clients cloisonnées par
+            <code>uid</code>), <code>storage.rules</code>, <code>database.rules.json</code>.</li>
+        <li><strong>Inscription pro filtrée</strong> — reCAPTCHA v3, demandes stockées dans
+            <code>pro-requests</code> en attendant la validation admin.</li>
+        <li><strong>API à secret partagé</strong> — <code>/api/cache/*</code> et
+            <code>/api/revalidate</code> exigent <code>CACHE_SECRET</code>, défini côté
+            App Hosting et Functions.</li>
+        <li><strong>Droit à l'oubli</strong> — l'extension <code>delete-user-data</code> purge les
+            données à la suppression d'un compte ; la vitrine expose <code>/demande-oubli</code>.</li>
+      </ul>
+    </section>
+
+    <!-- ══════════════ TESTS & DÉPLOIEMENT ══════════════ -->
+    <section id="tests">
+      <h2>Tests &amp; déploiement</h2>
+      <div class="cols-2">
+        <div>
+          <h3 style="margin-top:0">Tests</h3>
+          <ul class="tight">
+            <li><strong>Unitaires</strong> — Vitest + Testing Library : 47 tests, mocks Firebase
+                dans <code>__mocks__/</code>.</li>
+            <li><strong>E2E</strong> — Playwright, 5 suites (<code>public</code>, <code>pro</code>,
+                <code>admin</code>, <code>auth</code>), exécutables contre l'émulateur Firebase
+                avec garde anti-prod.</li>
+            <li><strong>Manuel</strong> — cahier de test versionné dans
+                <code>docs/CAHIER-DE-TEST.md</code>.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="margin-top:0">Déploiement</h3>
+          <ul class="tight">
+            <li><strong>Site</strong> — Firebase App Hosting, build au push :
+                1 CPU / 512 Mio, 0→4 instances (<code>apphosting.yaml</code>).</li>
+            <li><strong>Backend</strong> — <code>firebase deploy --only functions</code>,
+                <code>--only firestore:rules</code>, <code>--only storage</code>,
+                <code>--only database</code>.</li>
+            <li><strong>Émulateurs</strong> — Auth (9099) + Firestore (8080) pour le
+                développement et les e2e.</li>
+          </ul>
+        </div>
+      </div>
+
+      <footer class="colophon">
+        Workflow git : <code>feature/&lt;sujet&gt;</code> → PR vers <code>develop</code> → PR
+        <code>develop</code> → <code>main</code>. Le détail versionné vit dans
+        <code>docs/ARCHITECTURE.md</code>.
+      </footer>
+    </section>
+  </main>
+</div>
+
+</body></html>

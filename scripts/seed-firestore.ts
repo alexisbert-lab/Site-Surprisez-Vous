@@ -10,7 +10,9 @@
  *   firebase emulators:start --only firestore,auth   # terminal 1
  *   npm run seed                                      # terminal 2
  */
-import * as admin from 'firebase-admin';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import { config as loadEnv } from 'dotenv';
 
 loadEnv({ path: '.env.local' });
@@ -30,8 +32,8 @@ if (!/(localhost|127\.0\.0\.1|0\.0\.0\.0)/.test(host)) {
 }
 
 const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'site-surprisez-vous';
-admin.initializeApp({ projectId });
-const db = admin.firestore();
+initializeApp({ projectId });
+const db = getFirestore();
 
 // ── Données de référence ──────────────────────────────────────────────────────
 const marques = [
@@ -147,7 +149,7 @@ async function seedAdminUser() {
     console.log('⚠️  E2E_ADMIN_PASSWORD absent → compte admin non créé (tests auth seront en échec).');
     return;
   }
-  const auth = admin.auth();
+  const auth = getAuth();
   try {
     const existing = await auth.getUserByEmail(email);
     await auth.updateUser(existing.uid, { password });

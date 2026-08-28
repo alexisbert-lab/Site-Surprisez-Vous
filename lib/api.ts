@@ -1,5 +1,7 @@
 import { getCached, setCached } from './client-cache';
-import type { Product } from './firestore/products';
+import { MODE_LOCAL } from './local-mode';
+import { lireStoreLocal, lireStoreLocalEntier } from './local-store';
+import { sansLignesOrphelines, type Product } from './firestore/products';
 import type { Category } from './firestore/categories';
 import type { StatCategory } from './firestore/stat-categories';
 import type { Catalogue } from './firestore/catalogues';
@@ -11,7 +13,6 @@ import type { MarketingItem } from './firestore/marketing';
 import type { GroupeContact } from './firestore/groupes-contact';
 import type { ContenuPage } from './firestore/contenu-pages';
 import type { Evenement } from './firestore/evenements';
-import type { Declination } from './firestore/categories';
 import type { StockSettings } from './firestore/settings';
 
 const CF_BASE = process.env.NEXT_PUBLIC_CACHE_CF_URL!;
@@ -32,7 +33,6 @@ const TTL: Record<string, number> = {
   'groupes-contact': 15 * 60 * 1000,
   'contenu-pages':   15 * 60 * 1000,
   evenements:        15 * 60 * 1000,
-  declinations:      30 * 60 * 1000,
   'tarif-grids':     15 * 60 * 1000,
   'pro-requests':     1 * 60 * 1000,
   'stock-settings':  30 * 60 * 1000,
@@ -71,11 +71,19 @@ export interface SiteSettings {
 }
 
 export const api = {
-  getProducts:       () => fetchCollection<Product[]>('products'),
+  getProducts:       async () => sansLignesOrphelines(MODE_LOCAL
+    ? (await lireStoreLocalEntier<Product[]>('products')) ?? []
+    : await fetchCollection<Product[]>('products')),
   getCategories:     () => fetchCollection<Category[]>('categories'),
   getStatCategories: () => fetchCollection<StatCategory[]>('stat-categories'),
-  getPageContent:    (page: string) => fetchCollection<Record<string, string>>('page-content', { page }),
-  getSiteSettings:   () => fetchCollection<SiteSettings>('site-settings'),
+  // Mode local : la Cloud Function servirait le contenu de production, alors que
+  // l'éditeur vient d'écrire dans `.local-data/`.
+  getPageContent:    async (page: string) => MODE_LOCAL
+    ? (await lireStoreLocal<Record<string, string>>('page-content', page)) ?? {}
+    : fetchCollection<Record<string, string>>('page-content', { page }),
+  getSiteSettings:   async () => MODE_LOCAL
+    ? (await lireStoreLocalEntier<SiteSettings>('site-settings')) ?? { theme: {}, header: {}, footer: {} }
+    : fetchCollection<SiteSettings>('site-settings'),
   getCatalogues:     () => fetchCollection<Catalogue[]>('catalogues'),
   getMarques:        () => fetchCollection<Marque[]>('marques'),
   getTarifLines:     (gridId: string, idToken: string) => fetchCollection<TarifLine[]>('tarif-lines', { gridId }, idToken),
@@ -87,12 +95,11 @@ export const api = {
   getProRequests:    (idToken: string) => fetchCollection<ProRequest[]>('pro-requests', undefined, idToken),
   getMarketing:      () => fetchCollection<MarketingItem[]>('marketing'),
   getEvenements:     () => fetchCollection<Evenement[]>('evenements'),
-  getDeclinations:   () => fetchCollection<Declination[]>('declinations'),
   getContenuPages:   () => fetchCollection<ContenuPage[]>('contenu-pages'),
   getStockSettings:  () => fetchCollection<StockSettings>('stock-settings'),
 
   invalidate: (collection: string) => {
-    if (!CF_BASE) return Promise.resolve();
+    if (!CF_BASE || MODE_LOCAL) return Promise.resolve();
     return fetch(`${CF_BASE}/data/invalidate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

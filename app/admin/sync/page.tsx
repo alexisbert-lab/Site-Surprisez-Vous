@@ -22,8 +22,15 @@ const SYNC_CARDS: SyncCard[] = [
     label: 'Articles / Produits',
     description: 'Met à jour la collection products depuis le Drive.',
     endpoint: `${FUNCTIONS_BASE}/syncArticles`,
-    cacheTags: ['products', 'declinations'],
+    cacheTags: ['products'],
     adminCacheKeys: ['repartition-products'],
+  },
+  {
+    key: 'attributs',
+    label: 'Attributs produits',
+    description: 'Met à jour le registre, le référentiel et les tags produits depuis le classeur (SV_ATTRIBUTS, SV_VALEURS, SV_PRODUITS).',
+    endpoint: `${FUNCTIONS_BASE}/syncAttributs`,
+    cacheTags: ['attribute-registry', 'attribute-values', 'product-attributes'],
   },
   {
     key: 'statCategories',
@@ -82,7 +89,7 @@ interface CardState {
 
 function parseSyncResult(data: Record<string, unknown>): string {
   if (data.resultats) {
-    return Object.entries(data.resultats as Record<string, Record<string, unknown>>)
+    const lignes = Object.entries(data.resultats as Record<string, Record<string, unknown>>)
       .map(([file, r]) => {
         const parts = [];
         if (r.synced !== undefined) parts.push(`${r.synced} enregistrements`);
@@ -90,9 +97,20 @@ function parseSyncResult(data: Record<string, unknown>): string {
         if (r.catalogues !== undefined) parts.push(`${r.catalogues} catalogue(s)`);
         if (r.clients_lies !== undefined) parts.push(`${r.clients_lies} client(s) liés`);
         if (r.produits_restreints !== undefined) parts.push(`${r.produits_restreints} produit(s) restreints`);
+        if (r.nouveau !== undefined) parts.push(`${r.nouveau} nouveau(x)`);
+        if (r.modifie !== undefined) parts.push(`${r.modifie} modifié(s)`);
+        if (r.supprime !== undefined) parts.push(`${r.supprime} supprimé(s)`);
+        if (r.ignore !== undefined) parts.push(`${r.ignore} ignoré(s)`);
+        if (r.inchange !== undefined) parts.push(`${r.inchange} inchangé(s)`);
         return `${file} : ${parts.join(', ') || 'OK'}`;
-      })
-      .join(' | ');
+      });
+    // Le backend saute les fichiers Drive dont la date de modification n'a pas bougé :
+    // `resultats` est alors vide, et sans ce repli la carte n'affiche plus rien du tout.
+    const sautes = (data.sautes as string[] | undefined) ?? [];
+    if (sautes.length > 0) lignes.push(`déjà à jour : ${sautes.join(', ')}`);
+    const ignores = (data.ignores as string[] | undefined) ?? [];
+    if (ignores.length > 0) lignes.push(`non reconnu : ${ignores.join(', ')}`);
+    if (lignes.length > 0) return lignes.join(' | ');
   }
   if (data.catalogues !== undefined) {
     return `${data.catalogues} catalogue(s), ${data.clients_lies} client(s) liés, ${data.produits_restreints} produit(s) restreints`;

@@ -3,21 +3,39 @@
 import UniversCard from '@/components/ui/UniversCard';
 import EditableText from '@/components/editable/EditableText';
 
-const univers = [
-  { nom: 'Anniversaire', code: 'ANV', desc: 'Tout pour un anniversaire réussi : déco, vaisselle, ballons et surprises !', href: '/catalogue?univers=anniversaire' },
-  { nom: 'Eid', code: 'EID', desc: "Célébrez l'Aïd avec nos décorations festives et nos articles de fête.", href: '/catalogue?univers=eid' },
-  { nom: 'Baby Shower', code: 'BAB', desc: 'Accueillez bébé avec douceur grâce à notre gamme pastel et tendance.', href: '/catalogue?univers=baby-shower' },
-  { nom: 'Halloween', code: 'HAL', desc: 'Frissons garantis avec notre collection effrayante et amusante.', href: '/catalogue?univers=halloween' },
-  { nom: 'Noël', code: 'NOE', desc: "La magie de Noël s'invite chez vous avec notre gamme festive.", href: '/catalogue?univers=noel' },
-  { nom: 'Nouvel An', code: 'NAN', desc: 'Célébrez le passage à la nouvelle année avec éclat et style.', href: '/catalogue?univers=nouvel-an' },
-  { nom: 'Enterrement de vie de garçon', code: 'EVG', desc: 'Accessoires, déco et surprises pour une nuit mémorable entre amis.', href: '/catalogue?univers=evg' },
-  { nom: 'Enterrement de vie de jeune fille', code: 'EVF', desc: 'Tout pour une soirée inoubliable entre filles avant le grand jour.', href: '/catalogue?univers=evjf' },
-  { nom: 'Été & Tropical', code: 'ETE', desc: 'Ambiance tropicale et estivale pour vos fêtes en extérieur.', href: '/catalogue?univers=ete' },
-  { nom: 'Pâques', code: 'PAQ', desc: 'Décorations printanières et accessoires pour la chasse aux œufs.', href: '/catalogue?univers=paques' },
-  { nom: 'Sport', code: 'SPO', desc: 'Supportez votre équipe avec notre décoration aux couleurs du sport.', href: '/catalogue?univers=sport' },
-  { nom: 'Licorne & Fantaisie', code: 'LIC', desc: 'Un monde enchanté de paillettes, licornes et arcs-en-ciel.', href: '/catalogue?univers=licorne' },
-  { nom: 'Cinéma & Héros', code: 'CIN', desc: "Les héros préférés des enfants s'invitent à la fête.", href: '/catalogue?univers=cinema' },
+/**
+ * Ces cartes sont des occasions et des thèmes au sens du référentiel produits, pas des
+ * « univers » : dans le classeur, univers désigne la cible commerciale (enfant, apéro,
+ * sexy, plage). Chaque carte pointe vers le filtre correspondant du catalogue.
+ *
+ * `filtre` porte l'attribut et le slug du référentiel. À défaut de valeur existante,
+ * `recherche` sert de repli : ces trois entrées n'ont pas encore d'équivalent dans la
+ * feuille VALEURS et ne deviendront de vrais filtres qu'une fois ajoutées.
+ */
+const univers: {
+  nom: string; code: string; desc: string;
+  filtre?: { attribut: string; slug: string };
+  recherche?: string;
+}[] = [
+  { nom: 'Anniversaire', code: 'ANV', desc: 'Tout pour un anniversaire réussi : déco, vaisselle, ballons et surprises !', filtre: { attribut: 'occasion', slug: 'anniversaire' } },
+  { nom: 'Eid', code: 'EID', desc: "Célébrez l'Aïd avec nos décorations festives et nos articles de fête.", filtre: { attribut: 'occasion', slug: 'eid' } },
+  { nom: 'Baby Shower', code: 'BAB', desc: 'Accueillez bébé avec douceur grâce à notre gamme pastel et tendance.', recherche: 'baby shower' },
+  { nom: 'Halloween', code: 'HAL', desc: 'Frissons garantis avec notre collection effrayante et amusante.', filtre: { attribut: 'occasion', slug: 'halloween' } },
+  { nom: 'Noël', code: 'NOE', desc: "La magie de Noël s'invite chez vous avec notre gamme festive.", filtre: { attribut: 'occasion', slug: 'noel' } },
+  { nom: 'Nouvel An', code: 'NAN', desc: 'Célébrez le passage à la nouvelle année avec éclat et style.', filtre: { attribut: 'occasion', slug: 'nouvel an' } },
+  { nom: 'Enterrement de vie de garçon', code: 'EVG', desc: 'Accessoires, déco et surprises pour une nuit mémorable entre amis.', filtre: { attribut: 'occasion', slug: 'evjf evg' } },
+  { nom: 'Enterrement de vie de jeune fille', code: 'EVF', desc: 'Tout pour une soirée inoubliable entre filles avant le grand jour.', filtre: { attribut: 'occasion', slug: 'evjf evg' } },
+  { nom: 'Été & Tropical', code: 'ETE', desc: 'Ambiance tropicale et estivale pour vos fêtes en extérieur.', filtre: { attribut: 'theme', slug: 'tropical' } },
+  { nom: 'Pâques', code: 'PAQ', desc: 'Décorations printanières et accessoires pour la chasse aux œufs.', recherche: 'paques' },
+  { nom: 'Sport', code: 'SPO', desc: 'Supportez votre équipe avec notre décoration aux couleurs du sport.', filtre: { attribut: 'theme', slug: 'foot' } },
+  { nom: 'Licorne & Fantaisie', code: 'LIC', desc: 'Un monde enchanté de paillettes, licornes et arcs-en-ciel.', filtre: { attribut: 'theme', slug: 'licorne' } },
+  { nom: 'Cinéma & Héros', code: 'CIN', desc: "Les héros préférés des enfants s'invitent à la fête.", recherche: 'cinema' },
 ];
+
+function lienCatalogue(u: (typeof univers)[number]): string {
+  if (u.filtre) return `/catalogue?${u.filtre.attribut}=${encodeURIComponent(u.filtre.slug)}`;
+  return `/catalogue?q=${encodeURIComponent(u.recherche ?? u.nom)}`;
+}
 
 export default function UniversContent() {
   return (
@@ -51,7 +69,7 @@ export default function UniversContent() {
             nom={<EditableText page="univers" id={`univ_${u.code.toLowerCase()}_nom`}>{u.nom}</EditableText>}
             codeGamme={u.code}
             description={<EditableText page="univers" id={`univ_${u.code.toLowerCase()}_desc`}>{u.desc}</EditableText>}
-            href={u.href}
+            href={lienCatalogue(u)}
           />
         ))}
       </div>

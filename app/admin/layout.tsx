@@ -1,21 +1,35 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { AUTH_LOCALE } from '@/lib/local-auth';
 import AdminSidebar from '@/components/AdminSidebar';
 import AdminNotifBell from '@/components/admin/AdminNotifBell';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // La page de connexion vit sous /admin : sans cette exception, la garde ci-dessous
+  // la renverrait vers elle-même et ne rendrait jamais le formulaire.
+  const estPageConnexion = pathname === '/admin/connexion';
+
   useEffect(() => {
-    if (!loading && (!user || profile?.role !== 'admin')) {
+    // Mode local : la session admin est déjà ouverte, le formulaire ne mènerait
+    // nulle part (la connexion Firebase y est neutralisée).
+    if (AUTH_LOCALE && estPageConnexion) {
+      router.replace('/admin');
+      return;
+    }
+    if (!estPageConnexion && !loading && (!user || profile?.role !== 'admin')) {
       router.push('/admin/connexion');
     }
-  }, [user, profile, loading, router]);
+  }, [estPageConnexion, user, profile, loading, router]);
+
+  if (estPageConnexion) return <>{children}</>;
 
   if (loading) {
     return (
@@ -48,11 +62,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="text-[15px] sm:text-[17px] font-bold font-[family-name:var(--font-heading)]">Surprisez-Vous — Admin</span>
         </div>
         <div className="text-[13px] text-white/85 flex items-center gap-2 sm:gap-3">
+          {AUTH_LOCALE && (
+            <span
+              title="Données lues et écrites dans .local-data/ — la production n'est pas touchée"
+              className="px-2 py-0.5 rounded bg-amber-400 text-amber-950 text-[11px] font-bold uppercase tracking-wide"
+            >
+              Mode local
+            </span>
+          )}
           <AdminNotifBell />
           <span className="hidden sm:inline">{user.email}</span>
-          <button onClick={logout} className="px-2.5 py-1 rounded border border-white/40 text-xs hover:bg-white/10 transition-colors cursor-pointer">
-            Déconnexion
-          </button>
+          {!AUTH_LOCALE && (
+            <button onClick={logout} className="px-2.5 py-1 rounded border border-white/40 text-xs hover:bg-white/10 transition-colors cursor-pointer">
+              Déconnexion
+            </button>
+          )}
         </div>
       </div>
 

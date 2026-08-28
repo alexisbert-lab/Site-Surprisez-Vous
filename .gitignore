@@ -96,7 +96,13 @@ serviceAccountKey.json
 test-results/
 playwright-report/
 
+# Fixtures du mode local (SV_LOCAL_DATA=1) — regénérées par npm run local:data
+.local-data/
+
 # Données ERP locales et notes de travail (ne pas committer)
 Clients_Final.csv
 exports_erp/
 functions/Architecture site SV.txt
+
+# Uploads du mode local (editeur hors ligne)
+/public/local-uploads/

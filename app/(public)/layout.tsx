@@ -3,12 +3,22 @@ import Footer from '@/components/Footer';
 import BalloonBackgroundLazy from '@/components/BalloonBackgroundLazy';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { IframeEditProvider } from '@/lib/iframe-edit-context';
-import { getCachedPageContent } from '@/lib/server-cache';
+import {
+  getCachedPageContent, getCachedAttributeRegistry,
+  getCachedAttributeValues, getCachedCompteursMenu,
+} from '@/lib/server-cache';
 import CookieBanner from '@/components/CookieBanner';
 import PageLoader from '@/components/PageLoader';
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
-  const headerContent = await getCachedPageContent('header');
+  // Le méga-menu des catégories vit dans le header : les catégories sont atteignables
+  // depuis toutes les pages, pas seulement depuis le catalogue.
+  const [headerContent, attributeDefs, attributeValues, compteursMenu] = await Promise.all([
+    getCachedPageContent('header'),
+    getCachedAttributeRegistry(),
+    getCachedAttributeValues(),
+    getCachedCompteursMenu(),
+  ]);
   const logoSrc = headerContent?.logo_image ?? '';
   return (
     <IframeEditProvider initialPages={{ header: headerContent }}>
@@ -22,8 +32,12 @@ export default async function PublicLayout({ children }: { children: React.React
         width: '0%',
       }} />
       <ScrollProgress />
-      <Header />
-      <main className="flex-1" style={{ paddingTop: 154 }}>
+      <Header
+        attributeDefs={attributeDefs}
+        attributeValues={attributeValues}
+        compteursMenu={compteursMenu}
+      />
+      <main className="flex-1" style={{ paddingTop: 'var(--sv-header-h, 154px)' }}>
         {children}
       </main>
       <Footer />

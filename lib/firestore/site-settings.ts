@@ -1,5 +1,7 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase';
+import { MODE_LOCAL } from '../local-mode';
+import { lireStoreLocal, ecrireStoreLocal } from '../local-store';
 
 const db = () => getFirebaseDb();
 const COLLECTION = 'settings';
@@ -56,34 +58,44 @@ export const DEFAULT_FOOTER: FooterSettings = {
   linkedin_url: 'https://www.linkedin.com/company/surprisez-vous/posts/?feedView=all',
 };
 
+/** En mode local, les trois documents vivent dans `.local-data/site-settings.json`. */
+async function lireDoc<T extends object>(cle: string, defauts: T): Promise<T> {
+  if (MODE_LOCAL) {
+    const local = await lireStoreLocal<Partial<T>>('site-settings', cle);
+    return { ...defauts, ...(local ?? {}) };
+  }
+  const snap = await getDoc(doc(db(), COLLECTION, cle));
+  if (!snap.exists()) return defauts;
+  return { ...defauts, ...snap.data() } as T;
+}
+
+async function ecrireDoc(cle: string, data: object): Promise<void> {
+  if (MODE_LOCAL) return ecrireStoreLocal('site-settings', cle, { ...data });
+  await setDoc(doc(db(), COLLECTION, cle), data);
+}
+
 export async function getThemeColors(): Promise<ThemeColors> {
-  const snap = await getDoc(doc(db(), COLLECTION, 'theme'));
-  if (!snap.exists()) return DEFAULT_COLORS;
-  return { ...DEFAULT_COLORS, ...snap.data() } as ThemeColors;
+  return lireDoc('theme', DEFAULT_COLORS);
 }
 
 export async function saveThemeColors(colors: ThemeColors): Promise<void> {
-  await setDoc(doc(db(), COLLECTION, 'theme'), colors);
+  await ecrireDoc('theme', colors);
 }
 
 export async function getHeaderSettings(): Promise<HeaderSettings> {
-  const snap = await getDoc(doc(db(), COLLECTION, 'header'));
-  if (!snap.exists()) return DEFAULT_HEADER;
-  return { ...DEFAULT_HEADER, ...snap.data() } as HeaderSettings;
+  return lireDoc('header', DEFAULT_HEADER);
 }
 
 export async function saveHeaderSettings(settings: HeaderSettings): Promise<void> {
-  await setDoc(doc(db(), COLLECTION, 'header'), settings);
+  await ecrireDoc('header', settings);
 }
 
 export async function getFooterSettings(): Promise<FooterSettings> {
-  const snap = await getDoc(doc(db(), COLLECTION, 'footer'));
-  if (!snap.exists()) return DEFAULT_FOOTER;
-  return { ...DEFAULT_FOOTER, ...snap.data() } as FooterSettings;
+  return lireDoc('footer', DEFAULT_FOOTER);
 }
 
 export async function saveFooterSettings(settings: FooterSettings): Promise<void> {
-  await setDoc(doc(db(), COLLECTION, 'footer'), settings);
+  await ecrireDoc('footer', settings);
 }
 
 /** Catalogue téléchargeable. `pdf_url` : PDF hébergé (Firebase Storage). `calameo_url` : lien Calaméo

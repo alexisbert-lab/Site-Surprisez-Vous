@@ -16,15 +16,7 @@ export interface Category {
   code_stat: string; // Prefix to match against product pdt_code_stat (e.g. "BF")
 }
 
-export interface Declination {
-  id: string;
-  designation: string;
-  sous_titre?: string;
-  variants: { label: string; ref: string }[];
-}
-
 const CATEGORIES_COLLECTION = 'categories';
-const DECLINATIONS_COLLECTION = 'declinations';
 const GROUPS_COLLECTION = 'product-groups';
 
 // Categories
@@ -63,22 +55,4 @@ export async function assignProductToCategory(productRef: string, categoryId: st
 
 export async function removeProductFromCategory(productRef: string): Promise<void> {
   await deleteDoc(doc(db(), GROUPS_COLLECTION, productRef));
-}
-
-// Declinations
-export async function getDeclinations(): Promise<Declination[]> {
-  const snap = await getDocs(collection(db(), DECLINATIONS_COLLECTION));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Declination);
-}
-
-export async function saveDeclination(dec: Declination): Promise<void> {
-  await setDoc(doc(db(), DECLINATIONS_COLLECTION, dec.id), {
-    designation: dec.designation,
-    sous_titre: dec.sous_titre || '',
-    variants: dec.variants,
-  });
-}
-
-export async function deleteDeclination(id: string): Promise<void> {
-  await deleteDoc(doc(db(), DECLINATIONS_COLLECTION, id));
 }

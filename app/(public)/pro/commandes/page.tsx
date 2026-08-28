@@ -54,7 +54,7 @@ export default function CommandesPage() {
       ) : (
         <div className="space-y-3">
           {commandes.map((cmd) => (
-            <div key={cmd.id} className="bg-white border border-border rounded-xl p-4">
+            <div key={cmd.id} className="bg-surface border border-border rounded-xl p-4">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <p className="font-semibold text-ink">{cmd.reference}</p>

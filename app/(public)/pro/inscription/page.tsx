@@ -100,7 +100,7 @@ function InscriptionProForm() {
     `w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sv-primary/20 ${errors[field] ? 'border-red-400 focus:border-red-400' : 'border-border focus:border-sv-primary'}`;
 
   const selectClass = (field: keyof FormData) =>
-    `w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sv-primary/20 appearance-none bg-white cursor-pointer ${errors[field] ? 'border-red-400 focus:border-red-400' : 'border-border focus:border-sv-primary'}`;
+    `w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sv-primary/20 appearance-none bg-surface cursor-pointer ${errors[field] ? 'border-red-400 focus:border-red-400' : 'border-border focus:border-sv-primary'}`;
 
   return (
     <div className="max-w-2xl mx-auto">

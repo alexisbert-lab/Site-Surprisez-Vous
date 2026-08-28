@@ -60,7 +60,7 @@ function TiltCard({ titleId, titleDefault, descId, descDefault, icon, from, to }
 
 export function SectionUnivers() {
   return (
-    <section style={{ background: '#fff', padding: '80px 32px' }}>
+    <section style={{ background: 'var(--color-surface)', padding: '80px 32px' }}>
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
         <Reveal>
           <div style={{ marginBottom: 48, textAlign: 'center' }}>

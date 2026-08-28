@@ -1,16 +1,16 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
 const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+initializeApp({ credential: cert(serviceAccount) });
 
-const auth = admin.auth();
-const db = admin.firestore();
+const auth = getAuth();
+const db = getFirestore();
 
 const KEEP_EMAILS = ['alexis.bert@surprisez-vous.fr'];
 

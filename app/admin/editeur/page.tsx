@@ -6,6 +6,8 @@ import { getFirebaseStorage } from '@/lib/firebase';
 import { savePageContent } from '@/lib/firestore/page-content';
 import { getThemeColors, DEFAULT_COLORS, type ThemeColors } from '@/lib/firestore/site-settings';
 import { api } from '@/lib/api';
+import { MODE_LOCAL } from '@/lib/local-mode';
+import { televerserLocal } from '@/lib/local-store';
 import { invalidateCached } from '@/lib/client-cache';
 import { useAuth } from '@/lib/auth-context';
 import type { Product } from '@/lib/firestore/products';
@@ -246,16 +248,20 @@ export default function EditeurPage() {
   const applyWeight = (v: string) => { if (!selectedEl) return; setDraftWeight(v); sendUpdate(`${selectedEl.page}|${selectedEl.id}__weight`, v); };
   const applyFont   = (v: string) => { if (!selectedEl) return; setDraftFont(v);   sendUpdate(`${selectedEl.page}|${selectedEl.id}__font`, v); };
 
-  // ── Upload image Firebase Storage ──────────────────────────────────────
+  // ── Upload image : Firebase Storage, ou `public/local-uploads/` en mode local ──
+  const televerser = useCallback(async (file: File, prefixe: string) => {
+    if (MODE_LOCAL) return televerserLocal(file);
+    const sRef = storageRef(getFirebaseStorage(), `page-content/${prefixe}_${Date.now()}_${file.name}`);
+    const snap = await uploadBytes(sRef, file);
+    return getDownloadURL(snap.ref);
+  }, []);
+
   const handleImageUpload = useCallback(async (file: File) => {
     if (!selectedEl) return;
     setIsUploading(true);
     setUploadError(null);
     try {
-      const storage = getFirebaseStorage();
-      const sRef = storageRef(storage, `page-content/${selectedEl.page}_${selectedEl.id}_${Date.now()}_${file.name}`);
-      const snap = await uploadBytes(sRef, file);
-      const url  = await getDownloadURL(snap.ref);
+      const url = await televerser(file, `${selectedEl.page}_${selectedEl.id}`);
       applyText(url);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Erreur upload');
@@ -291,13 +297,9 @@ export default function EditeurPage() {
 
   const handleBrandLogoUpload = useCallback(async (file: File) => {
     setIsUploadingBrand(true);
-    const storage = getFirebaseStorage();
-    const sRef = storageRef(storage, `page-content/marque_logo_${Date.now()}_${file.name}`);
-    const snap = await uploadBytes(sRef, file);
-    const url  = await getDownloadURL(snap.ref);
-    addBrandLogoUrl(url);
+    addBrandLogoUrl(await televerser(file, 'marque_logo'));
     setIsUploadingBrand(false);
-  }, [addBrandLogoUrl]);
+  }, [addBrandLogoUrl, televerser]);
 
   // ── Changement de page ─────────────────────────────────────────────────
   const changePage = (p: typeof PAGES[0]) => {
@@ -338,20 +340,24 @@ export default function EditeurPage() {
       });
       await Promise.all(Object.entries(byPage).map(([pg, data]) => savePageContent(pg, data)));
 
-      const idToken = user ? await user.getIdToken() : undefined;
-      const patchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (idToken) patchHeaders['Authorization'] = `Bearer ${idToken}`;
+      // En mode local il n'y a ni cache CF ni cache serveur à prévenir : le
+      // fichier de fixtures est relu à chaque rendu.
+      if (!MODE_LOCAL) {
+        const idToken = user ? await user.getIdToken() : undefined;
+        const patchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (idToken) patchHeaders['Authorization'] = `Bearer ${idToken}`;
 
-      await Promise.allSettled([
-        api.invalidate('page-content'),
-        ...Object.entries(byPage).map(([pageId, data]) =>
-          fetch('/api/cache/patch', {
-            method: 'POST',
-            headers: patchHeaders,
-            body: JSON.stringify({ collection: 'page-content', pageId, items: [data] }),
-          })
-        ),
-      ]);
+        await Promise.allSettled([
+          api.invalidate('page-content'),
+          ...Object.entries(byPage).map(([pageId, data]) =>
+            fetch('/api/cache/patch', {
+              method: 'POST',
+              headers: patchHeaders,
+              body: JSON.stringify({ collection: 'page-content', pageId, items: [data] }),
+            })
+          ),
+        ]);
+      }
 
       // Vider le cache localStorage pour que la prochaine visite recharge le contenu frais
       Object.keys(byPage).forEach(pg => {

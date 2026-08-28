@@ -85,7 +85,7 @@ export default function ContactProPage() {
         <EditableText page="pro-contact" id="intro">Remplissez le formulaire ci-dessous et nous vous recontacterons selon votre préférence.</EditableText>
       </p>
 
-      <form onSubmit={handleSubmit} className="bg-white border border-border rounded-xl p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 space-y-5">
         <div>
           <label className="block text-xs font-medium text-ink-secondary mb-2">
             <EditableText page="pro-contact" id="label_mode">Mode de contact souhaité *</EditableText>
@@ -99,7 +99,7 @@ export default function ContactProPage() {
                 className={`px-4 py-2 rounded-lg text-xs font-medium border cursor-pointer transition-colors ${
                   modeContact === m.value
                     ? 'bg-sv-primary text-white border-sv-primary'
-                    : 'bg-white text-ink border-border hover:border-sv-primary'
+                    : 'bg-surface text-ink border-border hover:border-sv-primary'
                 }`}
               >
                 <EditableText page="pro-contact" id={m.labelId}>{m.label}</EditableText>

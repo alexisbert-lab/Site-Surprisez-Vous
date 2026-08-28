@@ -54,7 +54,7 @@ export default function RevendeurClient({ revendeurs }: { revendeurs: RevendeurR
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Formulaire */}
         <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="bg-white border border-border rounded-xl p-6 space-y-5 shadow-sm">
+          <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 space-y-5 shadow-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-ink mb-1.5">Code postal *</label>
@@ -71,7 +71,7 @@ export default function RevendeurClient({ revendeurs }: { revendeurs: RevendeurR
                 <select
                   value={rayon}
                   onChange={(e) => setRayon(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-sv-primary bg-white"
+                  className="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-sv-primary bg-surface"
                 >
                   <option value="10">10 km</option>
                   <option value="20">20 km</option>
@@ -96,7 +96,7 @@ export default function RevendeurClient({ revendeurs }: { revendeurs: RevendeurR
           {searched && !loading && (
             <div className="mt-6">
               {results.length === 0 ? (
-                <div className="text-center py-10 text-ink-secondary text-sm bg-white border border-border rounded-xl">
+                <div className="text-center py-10 text-ink-secondary text-sm bg-surface border border-border rounded-xl">
                   <div className="text-4xl mb-3">📍</div>
                   <p><EditableText page="revendeur" id="msg_no_results">Aucun revendeur trouvé dans cette zone.</EditableText></p>
                   <p className="mt-1"><EditableText page="revendeur" id="msg_no_results_hint">Essayez d&apos;élargir le rayon de recherche.</EditableText></p>
@@ -104,7 +104,7 @@ export default function RevendeurClient({ revendeurs }: { revendeurs: RevendeurR
               ) : (
                 <div className="space-y-3">
                   {results.map((r) => (
-                    <div key={r.id} className="bg-white border border-border rounded-xl p-4">
+                    <div key={r.id} className="bg-surface border border-border rounded-xl p-4">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="text-sm font-bold text-ink">{r.nom}</h3>
                         <span className="text-xs text-ink-secondary shrink-0">

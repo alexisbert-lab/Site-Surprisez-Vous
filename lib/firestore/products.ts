@@ -107,6 +107,16 @@ export function toPublicProduct(p: Product): PublicProduct {
   };
 }
 
+/**
+ * Le cache produits porte des lignes sans `pdt_reference` — des mises à jour de
+ * colisage ou de catalogue arrivées avant leur article. Elles ne désignent aucun
+ * produit, et tout ce qui les croise (tri, recherche, groupage) casse sur un
+ * `undefined`. Écartées à la source, aucun écran n'a à s'en défendre.
+ */
+export function sansLignesOrphelines<T extends Pick<Product, 'pdt_reference'>>(produits: T[]): T[] {
+  return produits.filter((p) => !!p?.pdt_reference);
+}
+
 export function filterArticlesVisibles<T extends Pick<Product, 'pdt_reference' | 'pdt_etat'>>(products: T[]): T[] {
   return products.filter((p) => {
     if (!p.pdt_reference) return false;

@@ -46,7 +46,7 @@ function ReelCard({ post, index }: { post: IgPost; index: number }) {
           boxShadow: hov ? '0 20px 56px rgba(232,24,90,0.10)' : '0 2px 8px rgba(0,0,0,0.04)',
           transform: hov ? 'translateY(-6px)' : 'none',
           transition: 'all 0.35s cubic-bezier(0.16,1,0.3,1)',
-          background: '#fff',
+          background: 'var(--color-surface)',
         }}
       >
         {/* Thumbnail */}
@@ -144,7 +144,7 @@ function SkeletonCard({ index }: { index: number }) {
     <Reveal delay={index * 0.1}>
       <div style={{
         borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0',
-        background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        background: 'var(--color-surface)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
       }}>
         <div style={{ aspectRatio: '4/5', background: 'linear-gradient(90deg,#f0f0f4 25%,#e8e8ec 50%,#f0f0f4 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite' }} />
         <div style={{ padding: '14px 16px 16px' }}>
@@ -175,7 +175,7 @@ export function SectionInstagram() {
   const noData  = error || (posts && posts.length === 0);
 
   return (
-    <section style={{ background: '#fafbfc', padding: '80px 32px' }}>
+    <section style={{ background: 'var(--color-bg)', padding: '80px 32px' }}>
       <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
         <Reveal>

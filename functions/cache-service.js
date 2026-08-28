@@ -156,11 +156,6 @@ async function readEvenements() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-async function readDeclinations() {
-  const snap = await db().collection('declinations').get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
 async function readTarifGrids() {
   const snap = await db().collection('tarifs').get();
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -195,7 +190,6 @@ const READERS = {
   'groupes-contact': (p) => readGroupesContact(),
   'contenu-pages':   (p) => readContenuPages(),
   'evenements':      (p) => readEvenements(),
-  'declinations':    (p) => readDeclinations(),
   'tarif-grids':     (p) => readTarifGrids(),
   'pro-requests':    (p) => readProRequests(),
   'stock-settings':  (p) => readStockSettings(),

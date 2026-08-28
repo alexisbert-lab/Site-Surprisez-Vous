@@ -1,0 +1,1471 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classeur Tag article</title>
+<style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --paper:      #F4F6F8;
+    --surface:    #FFFFFF;
+    --surface-2:  #EDF1F5;
+    --ink:        #101720;
+    --ink-2:      #46515F;
+    --ink-3:      #6B7887;
+    --rule:       #D9DFE6;
+    --rule-strong:#B4BFCB;
+    --accent:     #1C5D8C;
+    --accent-soft:#E4ECF4;
+    --rose:       #A25E69;
+    --alert:      #B00C26;
+    --alert-soft: #FAE6E9;
+    --warn:       #86690F;
+    --warn-soft:  #F7EFD3;
+    --ok:         #256A4B;
+    --ok-soft:    #E1F0E8;
+    --cell-list:  #CDE0F0;
+    --cell-free:  #F6E5AE;
+    --cell-erp:   #E6DCF2;
+    --cell-calc:  #E0E5EA;
+    --shadow:     0 1px 2px rgba(16,23,32,.06), 0 8px 24px -18px rgba(16,23,32,.35);
+
+    --f-display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+    --f-body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0E1319;
+      --surface:    #151C24;
+      --surface-2:  #1B242E;
+      --ink:        #E6EBF1;
+      --ink-2:      #A3AFBE;
+      --ink-3:      #7E8B9A;
+      --rule:       #26303B;
+      --rule-strong:#3A4653;
+      --accent:     #7CB8E2;
+      --accent-soft:#16283A;
+      --rose:       #D79AA3;
+      --alert:      #F0838F;
+      --alert-soft: #35191E;
+      --warn:       #DFC468;
+      --warn-soft:  #322A11;
+      --ok:         #74CFA2;
+      --ok-soft:    #14271E;
+      --cell-list:  #244562;
+      --cell-free:  #4C3F19;
+      --cell-erp:   #362C48;
+      --cell-calc:  #2A313A;
+      --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.9);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0E1319;
+    --surface:    #151C24;
+    --surface-2:  #1B242E;
+    --ink:        #E6EBF1;
+    --ink-2:      #A3AFBE;
+    --ink-3:      #7E8B9A;
+    --rule:       #26303B;
+    --rule-strong:#3A4653;
+    --accent:     #7CB8E2;
+    --accent-soft:#16283A;
+    --rose:       #D79AA3;
+    --alert:      #F0838F;
+    --alert-soft: #35191E;
+    --warn:       #DFC468;
+    --warn-soft:  #322A11;
+    --ok:         #74CFA2;
+    --ok-soft:    #14271E;
+    --cell-list:  #244562;
+    --cell-free:  #4C3F19;
+    --cell-erp:   #362C48;
+    --cell-calc:  #2A313A;
+    --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  @media (min-width: 1080px) {
+    .shell {
+      grid-template-columns: 216px minmax(0, 1fr);
+      column-gap: 56px;
+      padding-inline: 40px;
+    }
+  }
+
+  /* ---------- Bandeau de tête ---------- */
+
+  .masthead {
+    grid-column: 1 / -1;
+    border-bottom: 2px solid var(--ink);
+    padding: 56px 0 22px;
+    margin-bottom: 44px;
+  }
+
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: clamp(2.6rem, 6vw, 4.1rem);
+    line-height: .98;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0 0 16px;
+  }
+
+  .standfirst {
+    font-size: 1.09rem;
+    color: var(--ink-2);
+    max-width: 62ch;
+    margin: 0 0 30px;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    padding-top: 18px;
+  }
+
+  .fact {
+    padding-right: 30px;
+    margin-right: 30px;
+    border-right: 1px solid var(--rule);
+  }
+  .fact:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
+
+  .fact b {
+    display: block;
+    font-family: var(--f-display);
+    font-size: 1.62rem;
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fact span {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* ---------- Sommaire ---------- */
+
+  .rail { display: none; }
+
+  @media (min-width: 1080px) {
+    .rail {
+      display: block;
+      position: sticky;
+      top: 28px;
+      align-self: start;
+      max-height: calc(100vh - 56px);
+      overflow-y: auto;
+      font-size: 13.5px;
+      line-height: 1.4;
+    }
+    .rail p {
+      font-family: var(--f-mono);
+      font-size: 10.5px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 8px;
+      margin: 0 0 12px;
+    }
+    .rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+    .rail a {
+      color: var(--ink-2);
+      text-decoration: none;
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 4px;
+    }
+    .rail a:hover { color: var(--accent); }
+    .rail a em {
+      font-family: var(--f-mono);
+      font-style: normal;
+      font-size: 11px;
+      color: var(--ink-3);
+      padding-top: 2px;
+    }
+    .rail li.mark { margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--rule); }
+  }
+
+  /* ---------- Sections ---------- */
+
+  main { min-width: 0; }
+
+  section { margin-bottom: 68px; scroll-margin-top: 24px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    border-bottom: 1px solid var(--rule-strong);
+    padding-bottom: 10px;
+    margin-bottom: 26px;
+  }
+
+  .sec-head em {
+    font-family: var(--f-mono);
+    font-style: normal;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: .06em;
+  }
+
+  h2 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: 1.72rem;
+    letter-spacing: -.012em;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  h3 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 1.14rem;
+    letter-spacing: -.005em;
+    margin: 34px 0 12px;
+  }
+
+  p { max-width: 68ch; margin: 0 0 16px; }
+  p.lede { font-size: 1.04rem; color: var(--ink-2); }
+
+  ul.plain { max-width: 68ch; padding-left: 18px; margin: 0 0 18px; }
+  ul.plain li { margin-bottom: 7px; }
+
+  code, .mono {
+    font-family: var(--f-mono);
+    font-size: .88em;
+  }
+
+  code {
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: .08em .34em;
+    white-space: nowrap;
+  }
+
+  strong { font-weight: 600; }
+
+  /* ---------- Grille de feuilles ---------- */
+
+  .sheets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+
+  .sheet {
+    background: var(--surface);
+    padding: 18px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sheet h4 {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    margin: 0;
+    color: var(--accent);
+  }
+
+  .sheet p { font-size: 14px; margin: 0; color: var(--ink-2); max-width: none; }
+
+  .who {
+    margin-top: auto;
+    padding-top: 10px;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-top: 1px dotted var(--rule-strong);
+  }
+
+  /* ---------- Tableaux ---------- */
+
+  .scroller {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    margin-bottom: 18px;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    min-width: 540px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 9px 13px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+
+  thead th {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--rule-strong);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+
+  td.k, th.k { font-family: var(--f-mono); font-size: 12.5px; white-space: nowrap; }
+  td.num { font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
+  .muted { color: var(--ink-2); }
+
+  /* ---------- Pastilles ---------- */
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 2px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .t-list { background: var(--cell-list); color: var(--ink); }
+  .t-free { background: var(--cell-free); color: var(--ink); }
+  .t-erp  { background: var(--cell-erp);  color: var(--ink); }
+  .t-calc { background: var(--cell-calc); color: var(--ink-2); }
+  .t-accent { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  .t-alert { background: var(--alert-soft); color: var(--alert); border-color: var(--alert); }
+  .t-warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+  .t-ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 0 0 20px; }
+  .legend span { font-size: 13.5px; color: var(--ink-2); display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 15px; height: 15px; border: 1px solid var(--rule-strong); flex: none; }
+
+  /* ---------- Encadrés ---------- */
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 15px 18px;
+    margin: 0 0 22px;
+    font-size: 14.5px;
+    box-shadow: var(--shadow);
+  }
+  .callout p { margin: 0; max-width: 64ch; }
+  .callout p + p { margin-top: 10px; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.alert { border-left-color: var(--alert); }
+
+  .callout b.lbl {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+
+  /* ---------- Chaîne A → Z ---------- */
+
+  .chain { list-style: none; margin: 0; padding: 0; }
+
+  .chain > li {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    column-gap: 18px;
+    padding-bottom: 26px;
+    position: relative;
+  }
+
+  .chain > li::before {
+    content: "";
+    position: absolute;
+    left: 17px;
+    top: 30px;
+    bottom: 0;
+    width: 1px;
+    background: var(--rule-strong);
+  }
+  .chain > li:last-child { padding-bottom: 0; }
+  .chain > li:last-child::before { display: none; }
+
+  .step-n {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 500;
+    width: 34px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--rule-strong);
+    background: var(--surface);
+    color: var(--accent);
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-body h4 {
+    font-family: var(--f-display);
+    font-size: 1.06rem;
+    font-weight: 600;
+    margin: 3px 0 5px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .step-body p { font-size: 14.5px; color: var(--ink-2); margin: 0; max-width: 62ch; }
+  .step-body p + p { margin-top: 8px; }
+
+  /* ---------- Tableaux de test ---------- */
+
+  .bloc-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 32px 0 12px;
+  }
+  .bloc-title h3 { margin: 0; }
+  .bloc-title span {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+
+  table.tests td.id {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    color: var(--accent);
+    white-space: nowrap;
+    width: 46px;
+  }
+  table.tests td.box { width: 34px; text-align: center; color: var(--rule-strong); font-size: 17px; line-height: 1.2; }
+  table.tests td.exp { color: var(--ink-2); }
+  table.tests th:nth-child(2), table.tests td:nth-child(2) { width: 42%; }
+
+  /* ---------- Schéma des déclinaisons ---------- */
+
+  .groupe-demo {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    padding: 18px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+  .groupe-demo table { min-width: 460px; margin: 0; }
+  .groupe-demo caption {
+    caption-side: top;
+    text-align: left;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-bottom: 8px;
+  }
+  .pastille {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--rule-strong);
+    vertical-align: -2px;
+    margin-right: 6px;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, .rail a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  footer {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--rule);
+    padding-top: 18px;
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    letter-spacing: .05em;
+    color: var(--ink-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 26px;
+  }
+
+  @media print {
+    .rail { display: none; }
+    .shell { grid-template-columns: 1fr; max-width: none; }
+    section { break-inside: auto; margin-bottom: 34px; }
+    .sec-head, .bloc-title, tr { break-inside: avoid; }
+    body { background: #fff; font-size: 11pt; }
+  }
+</style>
+
+<style>
+  /* ---------- Index rapide ---------- */
+
+  .quick {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin: 0 0 46px;
+  }
+
+  .quick a {
+    background: var(--surface);
+    padding: 12px 15px;
+    text-decoration: none;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    font-size: 14.5px;
+  }
+  .quick a:hover { background: var(--accent-soft); color: var(--accent); }
+  .quick a em {
+    font-family: var(--f-mono);
+    font-style: normal;
+    font-size: 11px;
+    color: var(--ink-3);
+    flex: none;
+  }
+  .quick a:hover em { color: var(--accent); }
+
+  /* ---------- Recettes ---------- */
+
+  .steps { counter-reset: st; list-style: none; margin: 0 0 18px; padding: 0; max-width: 70ch; }
+
+  .steps > li {
+    counter-increment: st;
+    position: relative;
+    padding: 0 0 13px 38px;
+  }
+  .steps > li:last-child { padding-bottom: 4px; }
+
+  .steps > li::before {
+    content: counter(st);
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 23px;
+    height: 23px;
+    display: grid;
+    place-items: center;
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+  }
+
+  .steps b {
+    font-family: var(--f-mono);
+    font-size: .86em;
+    font-weight: 500;
+    letter-spacing: .03em;
+    color: var(--accent);
+  }
+
+  .hint { display: block; color: var(--ink-3); font-size: 13.5px; margin-top: 2px; }
+
+  .check {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    border-left: 3px solid var(--ok);
+    background: var(--ok-soft);
+    padding: 10px 14px;
+    margin: 0 0 16px;
+    max-width: 70ch;
+    font-size: 14.5px;
+  }
+  .check::before { content: "\2713"; color: var(--ok); font-weight: 700; flex: none; }
+
+  .check.no { border-left-color: var(--alert); background: var(--alert-soft); }
+  .check.no::before { content: "\2715"; color: var(--alert); }
+
+  .next {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    color: var(--ink-3);
+    margin: 0 0 8px;
+  }
+  .next a { color: var(--accent); }
+
+  /* ---------- Sommaire groupé ---------- */
+
+  @media (min-width: 1080px) {
+    .rail li.grp {
+      margin-top: 17px;
+      padding-top: 11px;
+      border-top: 1px solid var(--rule);
+      font-family: var(--f-mono);
+      font-size: 10px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .rail li.grp:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  }
+</style>
+
+<div class="shell">
+
+  <header class="masthead">
+    <p class="eyebrow">Surprisez-vous · Référentiel produits</p>
+    <h1>Le classeur Tag article</h1>
+    <p class="standfirst">
+      Un seul fichier décrit ce qu'est un produit : sa place dans le menu, ses filtres, sa fiche,
+      ses déclinaisons. Le site ne code aucun attribut en dur — il lit le classeur.
+      Ce document est un mode d'emploi : chaque geste courant tient en trois ou quatre étapes.
+    </p>
+  </header>
+
+  <nav class="quick" aria-label="Index des gestes">
+    <a href="#g-produit"><em>04</em><span>Ajouter un produit</span></a>
+    <a href="#g-valeur"><em>05</em><span>Ajouter une couleur, une occasion…</span></a>
+    <a href="#g-souscat"><em>06</em><span>Ajouter une sous-catégorie</span></a>
+    <a href="#g-slot"><em>07</em><span>Ajouter une colonne « Couleur 4 »</span></a>
+    <a href="#g-attribut"><em>08</em><span>Créer un attribut</span></a>
+    <a href="#g-zone"><em>09</em><span>Déplacer un filtre</span></a>
+    <a href="#g-retirer"><em>10</em><span>Retirer quelque chose</span></a>
+    <a href="#g-declinaison"><em>11</em><span>Grouper des déclinaisons</span></a>
+    <a href="#g-publier"><em>12</em><span>Envoyer au site</span></a>
+  </nav>
+
+  <nav class="rail" aria-label="Sommaire">
+    <p>Sommaire</p>
+    <ol>
+      <li class="grp">Comprendre</li>
+      <li><a href="#bref"><em>01</em><span>En bref</span></a></li>
+      <li><a href="#feuilles"><em>02</em><span>Les sept feuilles</span></a></li>
+      <li><a href="#saisie"><em>03</em><span>Lire la feuille PRODUITS</span></a></li>
+
+      <li class="grp">Les gestes</li>
+      <li><a href="#g-produit"><em>04</em><span>Ajouter un produit</span></a></li>
+      <li><a href="#g-valeur"><em>05</em><span>Ajouter une valeur</span></a></li>
+      <li><a href="#g-souscat"><em>06</em><span>Ajouter une sous-catégorie</span></a></li>
+      <li><a href="#g-slot"><em>07</em><span>Ajouter une colonne</span></a></li>
+      <li><a href="#g-attribut"><em>08</em><span>Ajouter un attribut</span></a></li>
+      <li><a href="#g-zone"><em>09</em><span>Déplacer un attribut</span></a></li>
+      <li><a href="#g-retirer"><em>10</em><span>Retirer</span></a></li>
+      <li><a href="#g-declinaison"><em>11</em><span>Créer une déclinaison</span></a></li>
+      <li><a href="#g-publier"><em>12</em><span>Publier</span></a></li>
+
+      <li class="grp">Référence</li>
+      <li><a href="#ref-produits"><em>13</em><span>Colonnes de PRODUITS</span></a></li>
+      <li><a href="#ref-controle"><em>14</em><span>Messages de CONTRÔLE</span></a></li>
+      <li><a href="#ref-registre"><em>15</em><span>ATTRIBUTS et VALEURS</span></a></li>
+      <li><a href="#regles"><em>16</em><span>Les huit règles</span></a></li>
+      <li><a href="#test"><em>17</em><span>Protocole de test</span></a></li>
+      <li><a href="#corrections"><em>18</em><span>Corrigé · à trancher</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ══ COMPRENDRE ══ -->
+
+    <!-- 01 -->
+    <section id="bref">
+      <div class="sec-head"><em>01</em><h2>En bref</h2></div>
+
+      <p class="lede">
+        L'ERP ne fournit que deux choses : une référence et une désignation en majuscules.
+        <span class="mono">GFM00M · GUIR FANION JA METAL MULTIC</span>. De quoi faire ni menu, ni filtre, ni fiche produit.
+      </p>
+
+      <p>
+        Le classeur ajoute la couche manquante : pour chaque référence, un jeu de <strong>tags</strong> choisis dans
+        des listes fermées — catégorie, univers, occasion, thème, couleur, matière, taille, finition…
+        Ces deux colonnes de l'ERP se collent telles quelles ; seuls la description et le code de
+        groupe se tapent au clavier.
+      </p>
+
+      <p>
+        La feuille <code>ATTRIBUTS</code> va plus loin : elle ne stocke pas des données produit, elle
+        <strong>décrit l'interface du site</strong>. Où l'attribut s'affiche, comment il se dessine, combien de valeurs
+        un produit peut porter, s'il peut servir de déclinaison. Changer une de ces cellules change le site
+        après synchro, sans une ligne de code.
+      </p>
+
+      <div class="callout">
+        <b class="lbl">À retenir</b>
+        <p>Le classeur est la source de vérité du catalogue. Le menu des categorie, les filtres, les déclinaisons
+        et la fiche produit en sont le reflet, jamais l'inverse. Il n'existe plus d'écran d'administration
+        pour ces données — seulement un bouton de synchronisation.</p>
+      </div>
+    </section>
+
+    <!-- 02 -->
+    <section id="feuilles">
+      <div class="sec-head"><em>02</em><h2>Les sept feuilles</h2></div>
+
+      <p>Quatre se remplissent à la main, trois se calculent seules. Confondre les deux est la première source d'erreur.</p>
+
+      <div class="sheets">
+        <div class="sheet">
+          <h4>PRODUITS</h4>
+          <p>Une ligne par référence. C'est ici qu'on travaille, en choisissant dans les menus déroulants.</p>
+          <div class="who">Saisie humaine</div>
+        </div>
+        <div class="sheet">
+          <h4>ATTRIBUTS</h4>
+          <p>Le registre : quels tags existent, où ils s'affichent sur le site et sous quelle forme.</p>
+          <div class="who">Saisie — rare</div>
+        </div>
+        <div class="sheet">
+          <h4>VALEURS</h4>
+          <p>Le référentiel : toutes les options de chaque tag, avec leur libellé affiché et leur teinte.</p>
+          <div class="who">Saisie — à chaque nouveauté</div>
+        </div>
+        <div class="sheet">
+          <h4>GROUPES</h4>
+          <p>Une ligne par article décliné : sa <em>devanture</em> — nom, description, image. Rien d'achetable. Créée et outillée par le script.</p>
+          <div class="who">Saisie — par article décliné</div>
+        </div>
+        <div class="sheet">
+          <h4>LISTES</h4>
+          <p>Recopie de VALEURS en colonnes, régénérée par le script. Ne rien y taper.</p>
+          <div class="who">Généré</div>
+        </div>
+        <div class="sheet">
+          <h4>EXPORT</h4>
+          <p>Une ligne = un document Firebase. Seize formules qui recollent les colonnes numérotées.</p>
+          <div class="who">Généré</div>
+        </div>
+        <div class="sheet">
+          <h4>_SYNC</h4>
+          <p>Feuille masquée : journal des exports — ce qui a été écrit, ce qui a été refusé, et <span class="mono">inchangé</span> quand un CSV était déjà à jour.</p>
+          <div class="who">Généré · masquée</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 -->
+    <section id="saisie">
+      <div class="sec-head"><em>03</em><h2>Lire la feuille PRODUITS</h2></div>
+
+      <p>Les trois premières lignes ne sont pas des données :</p>
+
+      <ul class="plain">
+        <li><strong>Ligne 1</strong> — le rappel de la consigne. Décorative.</li>
+        <li><strong>Ligne 2</strong> — le libellé lisible de la colonne (« Couleur 1 »). Modifiable sans conséquence.</li>
+        <li><strong>Ligne 3</strong> — la <strong>clé technique</strong> (<code>couleur</code>). C'est elle, et non la position de
+          la colonne, qui fait le lien avec le reste du classeur et avec Firebase. <strong>Ne jamais la modifier.</strong></li>
+        <li><strong>Ligne 4 et suivantes</strong> — les produits.</li>
+      </ul>
+
+      <p>Le fond de la cellule annonce ce qu'on a le droit d'y faire :</p>
+
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--cell-list)"></i> Liste déroulante — rien à taper</span>
+        <span><i class="swatch" style="background:var(--cell-erp)"></i> Collé depuis l'ERP — référence, désignation</span>
+        <span><i class="swatch" style="background:var(--cell-free)"></i> Saisie libre — groupe, description</span>
+        <span><i class="swatch" style="background:var(--cell-calc)"></i> Calculé — ne pas écrire dessus</span>
+      </div>
+
+      <h3>Les slots numérotés</h3>
+      <p>
+        « Couleur 1 / 2 / 3 » ne sont pas trois attributs : c'est le même tag <code>couleur</code> avec trois emplacements.
+        Deux règles suffisent — <strong>remplir dans l'ordre</strong> et <strong>jamais deux fois la même valeur</strong>.
+        Laisser vide ce qui ne s'applique pas. C'est la feuille EXPORT, et elle seule, qui recolle les slots.
+      </p>
+
+      <p class="next">Le détail des 26 colonnes : <a href="#ref-produits">§13</a>.</p>
+    </section>
+
+    <!-- ══ LES GESTES ══ -->
+
+    <!-- 04 -->
+    <section id="g-produit">
+      <div class="sec-head"><em>04</em><h2>Ajouter un produit</h2></div>
+
+      <ol class="steps">
+        <li><b>PRODUITS</b> — une nouvelle ligne, tout en bas.</li>
+        <li>Coller <strong>la référence et la désignation de l'ERP à l'identique</strong> — les deux se copient, aucune ne se réécrit.</li>
+        <li>Rédiger la <strong>description courte</strong> : c'est le seul texte à écrire.</li>
+        <li>Choisir les tags dans les menus déroulants.
+          <span class="hint">Slots numérotés : remplir dans l'ordre, sans répéter deux fois la même valeur.</span></li>
+        <li>Mettre <code>statut</code> sur <code>actif</code>.</li>
+      </ol>
+
+      <p class="check">La colonne CONTRÔLE se vide dès que la catégorie et la sous-catégorie sont posées : la ligne est publiable. Complét. dit ce qu'il reste à enrichir — viser 100 %, sans que ce soit une condition.</p>
+
+      <p>
+        Rien à recopier vers le bas : slug SEO, complétude, contrôle et ligne d'EXPORT se calculent seuls,
+        jusqu'à la ligne 1000.
+      </p>
+
+      <p class="next">Puis publier → <a href="#g-publier">§12</a>.</p>
+    </section>
+
+    <!-- 05 -->
+    <section id="g-valeur">
+      <div class="sec-head"><em>05</em><h2>Ajouter une valeur</h2></div>
+
+      <p class="lede">
+        Une couleur, une occasion, un thème, une matière — tout ce qui doit apparaître dans un menu déroulant.
+        Une valeur qui n'est pas ici ne pourra pas être choisie dans PRODUITS.
+      </p>
+
+      <ol class="steps">
+        <li><b>VALEURS</b> — une nouvelle ligne.</li>
+        <li>Renseigner <code>attribut</code> (la clé du tag, <span class="mono">couleur</span>),
+          <code>slug</code> (la clé de la valeur, sans accent ni majuscule),
+          <code>libelle</code> (ce que lit le client), <code>ordre</code>, <code>actif</code> = <code>oui</code>.
+          <span class="hint">Numéroter l'ordre de 10 en 10 pour pouvoir intercaler plus tard.
+          Pour une couleur, remplir aussi <code>hex</code> : c'est la teinte de la pastille.</span></li>
+        <li>Menu <b>Firestore › Reconstruire les listes déroulantes</b>.</li>
+      </ol>
+
+      <p class="check">La valeur apparaît dans LISTES, puis dans le menu déroulant de PRODUITS.</p>
+      <p class="check no">Ne jamais taper une valeur directement dans une cellule bleue : la saisie hors liste est refusée.</p>
+
+      <p class="next">Colonnes de VALEURS en détail → <a href="#ref-registre">§15</a>.</p>
+    </section>
+
+    <!-- 06 -->
+    <section id="g-souscat">
+      <div class="sec-head"><em>06</em><h2>Ajouter une sous-catégorie</h2></div>
+
+      <p>Le même geste qu'au <a href="#g-valeur">§05</a>, avec une colonne de plus.</p>
+
+      <ol class="steps">
+        <li><b>VALEURS</b> — une nouvelle ligne, <code>attribut</code> = <code>sous_categorie</code>.</li>
+        <li>Renseigner <code>parent</code> : le slug de la catégorie qui l'accueille.
+          <span class="hint">Sans parent, le contrôle de cohérence rejettera tout produit qui la porte.</span></li>
+        <li>Menu <b>Firestore › Reconstruire les listes déroulantes</b>.</li>
+      </ol>
+
+      <p class="check">Elle apparaît dans le menu, et un produit rangé sous son parent ne déclenche aucune erreur.</p>
+
+      <p>
+        Le référentiel n'a plus de plafond : le contrôle interroge VALEURS en entier, la 36<sup>e</sup> sous-catégorie
+        passe comme les autres.
+      </p>
+    </section>
+
+    <!-- 07 -->
+    <section id="g-slot">
+      <div class="sec-head"><em>07</em><h2>Ajouter une colonne</h2></div>
+
+      <p class="lede">
+        Quand un produit doit pouvoir porter une 4<sup>e</sup> couleur, ou une 3<sup>e</sup> matière.
+        Un slot de plus = une colonne de plus.
+      </p>
+
+      <ol class="steps">
+        <li><b>ATTRIBUTS</b> — passer <code>slots</code> de <span class="mono">3</span> à <span class="mono">4</span>
+          sur la ligne de l'attribut.</li>
+        <li><b>PRODUITS</b> — insérer la colonne <strong>juste après la dernière du même tag</strong>
+          (Couleur 4 après Couleur 3).
+          <span class="hint">Les colonnes d'un même tag doivent rester côte à côte : EXPORT lit une plage
+          continue, de la première à la dernière colonne de la clé.</span></li>
+        <li>Ligne 2, le libellé lisible (« Couleur 4 »). Ligne 3, <strong>la même clé technique</strong>
+          que ses voisines (<code>couleur</code>).</li>
+        <li>Menu <b>Firestore › Régénérer les formules</b>, puis <b>› Reconstruire les listes déroulantes</b>.</li>
+      </ol>
+
+      <p class="check">La nouvelle colonne a son menu déroulant et EXPORT recolle les quatre slots :
+        <span class="mono">or|blanc|rouge|vert</span>.</p>
+
+      <p>
+        « Régénérer les formules » relit la ligne 3 et reconstruit EXPORT, le contrôle et la complétude à partir
+        d'elle. Rien à écrire à la main dans EXPORT.
+      </p>
+    </section>
+
+    <!-- 08 -->
+    <section id="g-attribut">
+      <div class="sec-head"><em>08</em><h2>Ajouter un attribut</h2></div>
+
+      <p class="lede">Un tag qui n'existe pas encore — « contenance », « style d'impression ».</p>
+
+      <ol class="steps">
+        <li><b>ATTRIBUTS</b> — une nouvelle ligne : <code>cle</code> (sans accent ni majuscule), <code>libelle</code>,
+          <code>zone</code>, <code>type</code> = <code>liste</code>, <code>slots</code>, <code>rendu</code>,
+          <code>ordre</code>, <code>actif</code> = <code>oui</code>, <code>axe</code>.
+          <span class="hint">La zone décide de tout : <code>menu</code>, <code>filtre_tete</code>,
+          <code>filtre_attr</code> ou <code>fiche</code>. Le tableau des zones est au <a href="#ref-registre">§15</a>.</span></li>
+        <li><b>VALEURS</b> — créer ses options, une ligne chacune (<a href="#g-valeur">§05</a>).</li>
+        <li><b>PRODUITS</b> — insérer autant de colonnes contiguës que de <code>slots</code> : libellé en ligne 2,
+          clé technique en ligne 3.</li>
+        <li>Menu <b>Firestore › Régénérer les formules</b>, puis <b>› Reconstruire les listes déroulantes</b>.</li>
+      </ol>
+
+      <p class="check">La colonne a son menu, le contrôle surveille ses doublons et son ordre de remplissage,
+        et l'attribut apparaît sur le site à l'endroit dicté par <code>zone</code> après synchro.</p>
+
+      <p class="next">Puis publier → <a href="#g-publier">§12</a>.</p>
+    </section>
+
+    <!-- 09 -->
+    <section id="g-zone">
+      <div class="sec-head"><em>09</em><h2>Déplacer un attribut</h2></div>
+
+      <p class="lede">
+        Le geste qui résume le dispositif : une cellule change, l'interface du site change. Aucune ligne de code.
+      </p>
+
+      <ol class="steps">
+        <li><b>ATTRIBUTS</b> — changer <code>zone</code> sur la ligne de l'attribut.
+          <span class="hint"><code>fiche</code> → <code>filtre_attr</code> transforme une simple information
+          de fiche en facette filtrable.</span></li>
+        <li>Au besoin, ajuster <code>rendu</code> (<code>chips</code>, <code>pastille</code>, <code>case</code>)
+          et <code>ordre</code>, qui donne la position parmi les filtres.</li>
+        <li>Exporter et synchroniser (<a href="#g-publier">§12</a>).</li>
+      </ol>
+
+      <p class="check">Le filtre apparaît dans la colonne de gauche du catalogue, sans redéploiement.</p>
+
+      <p>
+        <code>actif</code> = <code>non</code> fait l'inverse : l'attribut disparaît du site sans qu'une seule
+        donnée soit effacée. Utile pour préparer un tag avant de le montrer.
+      </p>
+    </section>
+
+    <!-- 10 -->
+    <section id="g-retirer">
+      <div class="sec-head"><em>10</em><h2>Retirer</h2></div>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Ce qu'on veut retirer</th><th>Le geste</th><th>L'effet</th></tr></thead>
+          <tbody>
+            <tr><td>Un produit</td><td class="k">PRODUITS · statut = brouillon</td><td>Retiré du site à la synchro. La ligne reste dans le classeur.</td></tr>
+            <tr><td>Une valeur, provisoirement</td><td class="k">VALEURS · actif = non</td><td>Disparaît des menus. Les produits qui la portaient ne sont pas signalés en erreur.</td></tr>
+            <tr><td>Une valeur, définitivement</td><td class="k">VALEURS · supprimer la ligne</td><td>Supprimée de la base à la synchro suivante.</td></tr>
+            <tr><td>Un attribut</td><td class="k">ATTRIBUTS · actif = non</td><td>Disparaît du site, les données saisies sont conservées.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <b class="lbl">Retirer une ligne la retire vraiment</b>
+        <p>Une valeur ou un attribut supprimé du classeur est désormais supprimé de la base à la synchro suivante.
+        Auparavant seuls les produits étaient réconciliés : un tag retiré survivait indéfiniment en ligne.
+        La Cloud Function refuse en revanche un fichier vide — un export raté n'est pas une demande de purge.</p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section id="g-declinaison">
+      <div class="sec-head"><em>11</em><h2>Créer une déclinaison</h2></div>
+
+      <p class="lede">
+        Deux références de la même chose — un chemin de table or et un argent — doivent occuper une seule carte
+        du catalogue, avec un sélecteur sur la fiche.
+      </p>
+
+      <ol class="steps">
+        <li><b>PRODUITS</b> — poser le <strong>même code</strong> dans la colonne <code>Groupe</code> sur les deux lignes.
+          <span class="hint">En général le préfixe commun aux références : <span class="mono">M25CHTD</span> et
+          <span class="mono">M25CHTA</span> partagent le groupe <span class="mono">M25CHT</span>.</span></li>
+        <li>Vérifier qu'elles ont la <strong>même catégorie</strong> et qu'elles diffèrent par au moins un attribut
+          marqué <code>axe</code> — couleur ou taille.</li>
+        <li><b>GROUPES</b> — une ligne pour ce code : le <strong>nom de l'article</strong> et sa
+          <strong>description</strong>. C'est la <em>devanture</em> : ni une référence, ni quelque chose qui s'achète,
+          seulement ce qu'on voit avant d'avoir choisi.
+          <span class="hint">Déposer sa photo dans Storage sous <code>products/&lt;code groupe&gt;.jpg</code>, ou mettre
+          la référence d'un membre dans <code>image_ref</code> pour réutiliser la sienne. Sans cette ligne le groupe
+          fonctionne quand même, mais la carte montre le premier membre par ordre alphabétique.</span></li>
+        <li>Rien d'autre. Le libellé du sélecteur et sa pastille viennent de VALEURS.</li>
+      </ol>
+
+      <div class="groupe-demo">
+        <table>
+          <caption>PRODUITS — deux références, un seul article</caption>
+          <thead><tr><th class="k">ref</th><th class="k">groupe</th><th class="k">categorie</th><th class="k">couleur</th><th class="k">taille</th></tr></thead>
+          <tbody>
+            <tr><td class="k">M25CHTD</td><td class="k">M25CHT</td><td>art de la table</td><td><i class="pastille" style="background:#D4AF37"></i>or</td><td>5 m</td></tr>
+            <tr><td class="k">M25CHTA</td><td class="k">M25CHT</td><td>art de la table</td><td><i class="pastille" style="background:#C0C0C0"></i>argent</td><td>5 m</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="groupe-demo">
+        <table>
+          <caption>GROUPES — la devanture, qui n'est aucune des deux références</caption>
+          <thead><tr><th class="k">groupe</th><th class="k">designation</th><th class="k">description</th><th class="k">image_ref</th><th class="k">actif</th></tr></thead>
+          <tbody>
+            <tr><td class="k">M25CHT</td><td>Chemin de table Éclat</td><td>Chemin de table satiné de cinq mètres, deux coloris.</td><td></td><td>oui</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="check">CONTRÔLE reste vide sur les deux lignes de PRODUITS et sur celle de GROUPES.</p>
+
+      <p>
+        Le site retient le <strong>premier attribut <code>axe</code> qui distingue tous les membres</strong> du groupe,
+        dans l'ordre du registre : deux chemins de table de couleurs différentes seront présentés par couleur,
+        deux assiettes en 18 et 23 cm par taille. Aucune configuration groupe par groupe.
+      </p>
+
+      <div class="callout">
+        <b class="lbl">Ce que ça change sur le site</b>
+        <p>Une carte par article, plus une par référence, et les compteurs du méga-menu comptent les articles.
+        Un filtre couleur ramène le groupe dès qu'<em>une</em> de ses variantes porte la couleur cochée.
+        Chaque référence garde son adresse <code>/produit/&lt;slug SEO&gt;</code>, qui ouvre la fiche du groupe
+        avec la bonne variante sélectionnée — une couleur précise reste partageable.</p>
+        <p>La carte montre la devanture : son image, son nom, sa description — et <strong>aucune référence</strong>,
+        puisqu'il n'y a rien à commander à ce stade. Ouvrir l'article donne la même chose, plus la
+        <strong>liste des déclinaisons avec la description de chacune</strong> : on les compare sans cliquer. Cliquer
+        sur l'une d'elles bascule tout le panneau sur ce produit — sa référence, sa description, ses attributs, et côté
+        pro son prix et son stock — la liste restant affichée. La devanture ne figure jamais dans cette liste.</p>
+        <p>L'article gagne sa propre adresse, <code>/produit/&lt;slug de la devanture&gt;</code>, qui devient la
+        canonique du groupe ; chaque référence garde la sienne.</p>
+      </div>
+    </section>
+
+    <!-- 12 -->
+    <section id="g-publier">
+      <div class="sec-head"><em>12</em><h2>Publier</h2></div>
+
+      <ol class="steps">
+        <li>Vérifier que <strong>toutes</strong> les colonnes CONTRÔLE sont vides. C'est le seul feu vert.</li>
+        <li>Menu <b>Firestore › Exporter vers Drive</b> — quatre fichiers sont déposés :
+          <code>SV_ATTRIBUTS.csv</code>, <code>SV_VALEURS.csv</code>, <code>SV_PRODUITS.csv</code>,
+          <code>SV_GROUPES.csv</code>.
+          <span class="hint">L'export refuse de tourner s'il reste une anomalie — il nomme alors les références
+          fautives — ou si EXPORT couvre moins de références que PRODUITS.</span>
+          <span class="hint">Un fichier dont le contenu n'a pas bougé n'est pas réécrit : l'export l'annonce
+          <span class="mono">inchangé</span>, et si les trois le sont, il le dit franchement — inutile d'aller
+          lancer une synchro qui n'aurait rien à faire.</span></li>
+        <li>Ouvrir <code>/admin/sync</code> et lancer la carte <b>« Attributs produits »</b>.
+          <span class="hint">Les fichiers sont lus dans l'ordre : le registre d'abord, puisque c'est lui qui dit
+          quelles colonnes éclater sur les barres verticales.</span></li>
+        <li>Lire les compteurs : nouveau, modifié, supprimé, ignoré, inchangé. Le journal daté est dans la feuille
+          masquée <code>_SYNC</code>.</li>
+      </ol>
+
+      <p class="check">Relancée aussitôt sans rien changer, la synchro annonce tout en <span class="mono">inchangé</span> :
+        seules les lignes réellement modifiées sont réécrites.</p>
+
+      <h3>Le trajet d'une valeur</h3>
+      <p>
+        PRODUITS <span class="muted">→</span> EXPORT, qui recolle les slots d'un même tag
+        (<span class="mono">Couleur 1 = or</span>, <span class="mono">Couleur 2 = blanc</span> deviennent
+        <span class="mono">couleur = or|blanc</span>) <span class="muted">→</span> quatre CSV sur le Drive, en-tête
+        sur les clés techniques <span class="muted">→</span> Cloud Function <span class="muted">→</span> Firestore,
+        collections <code>attribute-registry</code>, <code>attribute-values</code>, <code>product-attributes</code>,
+        <code>attribute-groups</code>
+        <span class="muted">→</span> menu des categorie, bandeau de filtres, facettes et fiche produit.
+      </p>
+      <p>
+        Si le référentiel devient illisible, le catalogue retombe sur une grille simple plutôt que sur une page en erreur.
+      </p>
+    </section>
+
+    <!-- ══ RÉFÉRENCE ══ -->
+
+    <!-- 13 -->
+    <section id="ref-produits">
+      <div class="sec-head"><em>13</em><h2>Les colonnes de PRODUITS</h2></div>
+
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr><th class="k">Col.</th><th>Colonne</th><th class="k">Clé</th><th>Rôle</th><th>Type</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="k">A</td><td>Référence (ERP)</td><td class="k">ref</td><td>Identifiant ERP. Clé de jointure avec le catalogue.</td><td><span class="tag t-erp">collé</span></td></tr>
+            <tr><td class="k">B</td><td>Désignation (ERP)</td><td class="k">libelle</td><td>Le nom de l'article, tel que l'ERP le donne. Se colle avec la référence, ne se réécrit pas : le site l'affiche depuis la fiche produit, pas depuis le classeur.</td><td><span class="tag t-erp">collé</span></td></tr>
+            <tr><td class="k">C</td><td>Statut</td><td class="k">statut</td><td><code>actif</code> publie ; <code>brouillon</code> et <code>archive</code> retirent du site.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">D</td><td>Groupe</td><td class="k">groupe</td><td>Rassemble les références d'un même article. Vide = article seul.</td><td><span class="tag t-free">saisie</span></td></tr>
+            <tr><td class="k">E</td><td>Catégorie</td><td class="k">categorie</td><td>Niveau 1 du menu des categorie.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">F</td><td>Sous-catégorie</td><td class="k">sous_categorie</td><td>Niveau 2, rattaché à sa catégorie par la colonne <code>parent</code> de VALEURS.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">G–H</td><td>Univers 1–2</td><td class="k">univers</td><td>Cible commerciale. Jusqu'à 2 valeurs.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">I–K</td><td>Occasion 1–3</td><td class="k">occasion</td><td>L'événement visé. Jusqu'à 3 valeurs.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">L–M</td><td>Thème 1–2</td><td class="k">theme</td><td>Collection ou style graphique. Jusqu'à 2 valeurs.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">N–P</td><td>Couleur 1–3</td><td class="k">couleur</td><td>Affiché en pastilles. <strong>Axe de déclinaison.</strong></td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">Q–R</td><td>Matière 1–2</td><td class="k">matiere</td><td>Composition principale. Jusqu'à 2 valeurs.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">S</td><td>Taille</td><td class="k">taille</td><td>Format ou dimension. <strong>Axe de déclinaison.</strong></td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">T</td><td>Finition</td><td class="k">finition</td><td>Aspect de surface.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">U</td><td>Ignifugé M1</td><td class="k">ignifuge</td><td>Norme feu. Fiche produit seulement, non filtrable.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">V</td><td>Fixation</td><td class="k">fixation</td><td>Mode de pose. Fiche produit seulement.</td><td><span class="tag t-list">liste</span></td></tr>
+            <tr><td class="k">W</td><td>Description courte</td><td class="k">description_courte</td><td>Une phrase, affichée sous le titre du produit.</td><td><span class="tag t-free">saisie</span></td></tr>
+            <tr><td class="k">X</td><td>Slug SEO</td><td class="k">seo_slug</td><td>Déduit de la désignation ERP. Devient l'URL de la fiche : <code>/produit/…</code></td><td><span class="tag t-calc">calculé</span></td></tr>
+            <tr><td class="k">Y</td><td>Complét.</td><td class="k">—</td><td>Avancement du remplissage sur 12 champs suivis. Ni le groupe ni la désignation n'entrent dans le compte. <strong>Indicatif</strong> : une ligne à 40 % se publie quand même.</td><td><span class="tag t-calc">calculé</span></td></tr>
+            <tr><td class="k">Z</td><td>CONTRÔLE</td><td class="k">—</td><td>Liste des erreurs de la ligne. Vide = ligne bonne.</td><td><span class="tag t-calc">calculé</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="muted">
+        Dix-sept clés techniques distinctes, seize formules dans EXPORT — une par colonne du document Firebase.
+        <code>libelle</code> fait exception : la désignation appartient à l'ERP, le site la lit sur la fiche produit,
+        et le classeur n'a pas à en fournir une seconde version.
+      </p>
+    </section>
+
+    <!-- 14 -->
+    <section id="ref-controle">
+      <div class="sec-head"><em>14</em><h2>Les messages de CONTRÔLE</h2></div>
+
+      <p>
+        La dernière colonne relit chaque ligne et affiche en clair ce qui cloche, séparé par des points.
+        Une ligne saine laisse la cellule vide. <strong>Dix-huit vérifications</strong> tournent en permanence.
+        Quatre seulement portent sur un champ vide — référence, désignation ERP, catégorie, sous-catégorie ;
+        toutes les autres signalent une <em>incohérence</em>, jamais un simple manque :
+      </p>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Famille</th><th>Message affiché</th><th>Ce que ça veut dire</th></tr></thead>
+          <tbody>
+            <tr><td>Identité</td><td class="k">référence manquante · référence en double</td><td>Deux lignes ne peuvent pas décrire la même référence ERP.</td></tr>
+            <tr><td>Contenu</td><td class="k">libellé ERP non collé</td><td>La ligne n'a pas reçu sa désignation : sans elle, pas de slug SEO donc pas d'URL de fiche.</td></tr>
+            <tr><td>Rayon</td><td class="k">caractéristique(s) obligatoire(s) vide(s) : n</td><td>Deux tags seulement sont exigés : <strong>catégorie</strong> et <strong>sous-catégorie</strong>. Sans rayon, l'article n'a nulle part où apparaître dans le menu. Tout le reste — occasion, thème, couleur, matière, taille, finition, ignifugé, fixation, description — enrichit la fiche et les filtres sans bloquer la mise en ligne.</td></tr>
+            <tr><td>Cohérence</td><td class="k">sous-catégorie hors de sa catégorie</td><td>« Guirlandes fanions » sous « Carterie » : la sous-catégorie n'appartient pas au rayon choisi.</td></tr>
+            <tr><td>Slots</td><td class="k">univers · occasion · theme · couleur · matiere <span class="muted">en doublon</span></td><td>La même valeur a été choisie deux fois sur un même tag.</td></tr>
+            <tr><td>Slots</td><td class="k">… : remplir les cases dans l'ordre</td><td>Un emplacement 2 rempli alors que le 1 est vide.</td></tr>
+            <tr><td>Groupe</td><td class="k">groupe à un seul membre</td><td>Un code de groupe posé sur une seule ligne : faute de frappe, ou variante oubliée.</td></tr>
+            <tr><td>Groupe</td><td class="k">groupe : categorie incohérents</td><td>Deux variantes d'un même article rangées dans deux categorie différents.</td></tr>
+            <tr><td>Groupe</td><td class="k">groupe : deux variantes identiques</td><td>Deux membres ont la même couleur <em>et</em> la même taille : rien ne les distingue.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <b class="lbl">Le classeur embarque son propre banc d'essai</b>
+        <p>Les deux dernières lignes, <code>ZZDEMO1</code> et <code>ZZDEMO2</code>, sur fond rosé, contiennent des erreurs
+        volontaires : sous-catégorie mal rangée, univers en doublon, description absente, slots dans le désordre.
+        Elles prouvent que les contrôles répondent — et <strong>doivent être retirées avant la mise en production</strong>,
+        puisqu'elles bloquent l'export.</p>
+      </div>
+    </section>
+
+    <!-- 15 -->
+    <section id="ref-registre">
+      <div class="sec-head"><em>15</em><h2>ATTRIBUTS et VALEURS</h2></div>
+
+      <h3>Les zones d'affichage</h3>
+      <p>La colonne <code>zone</code> décide de l'endroit où l'attribut apparaît sur le site.</p>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th class="k">zone</th><th>Où l'attribut apparaît</th><th>Tags concernés</th></tr></thead>
+          <tbody>
+            <tr><td class="k">menu</td><td>Le méga-menu des categorie, sur deux niveaux</td><td>catégorie <span class="muted">(niveau 1)</span>, sous-catégorie <span class="muted">(niveau 2)</span></td></tr>
+            <tr><td class="k">filtre_tete</td><td>Le bandeau à onglets en haut de la page catalogue</td><td>univers, occasion, thème</td></tr>
+            <tr><td class="k">filtre_attr</td><td>La colonne de facettes, à gauche des produits</td><td>couleur, matière, taille, finition</td></tr>
+            <tr><td class="k">fiche</td><td>La fiche produit seulement — non filtrable</td><td>ignifugé M1, fixation</td></tr>
+            <tr><td class="k">groupe</td><td>Nulle part — sert au regroupement des déclinaisons</td><td>groupe</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Les colonnes d'ATTRIBUTS</h3>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th class="k">colonne</th><th>Effet</th></tr></thead>
+          <tbody>
+            <tr><td class="k">cle</td><td>La clé technique, celle qu'on écrit en ligne 3 de PRODUITS. Ne change jamais.</td></tr>
+            <tr><td class="k">libelle</td><td>Le nom lisible de l'attribut, affiché sur le site.</td></tr>
+            <tr><td class="k">zone</td><td>Où l'attribut apparaît — voir le tableau ci-dessus.</td></tr>
+            <tr><td class="k">niveau</td><td>Pour la zone <code>menu</code> uniquement : <span class="mono">1</span> ou <span class="mono">2</span>.</td></tr>
+            <tr><td class="k">type</td><td><code>liste</code> donne un menu déroulant ; <code>texte</code> reste en saisie libre — c'est le cas du groupe.</td></tr>
+            <tr><td class="k">slots</td><td>Le nombre de valeurs qu'un produit peut porter, donc le nombre de colonnes numérotées dans PRODUITS.</td></tr>
+            <tr><td class="k">rendu</td><td><code>chips</code> = boutons libellés · <code>pastille</code> = rond de couleur (teinte lue dans VALEURS) · <code>case</code> = case à cocher.</td></tr>
+            <tr><td class="k">ordre</td><td>L'ordre d'affichage des filtres. L'onglet ouvert par défaut est le premier de la zone de tête.</td></tr>
+            <tr><td class="k">actif</td><td><code>non</code> retire l'attribut du site sans effacer la moindre donnée.</td></tr>
+            <tr><td class="k">description</td><td>Note interne. Sans effet sur le site.</td></tr>
+            <tr><td class="k">axe</td><td><code>oui</code> : cet attribut peut distinguer les variantes d'un groupe. Posé sur couleur et taille.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Les colonnes de VALEURS</h3>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th class="k">colonne</th><th>Contenu</th><th>Exemple</th></tr></thead>
+          <tbody>
+            <tr><td class="k">attribut</td><td>À quel tag l'option se rattache</td><td class="k">couleur</td></tr>
+            <tr><td class="k">slug</td><td>La clé technique, sans accent ni majuscule. Ne change jamais.</td><td class="k">rose gold</td></tr>
+            <tr><td class="k">libelle</td><td>Ce que le client lit, y compris sur le sélecteur de déclinaison</td><td>Rose Gold</td></tr>
+            <tr><td class="k">hex</td><td>La teinte de la pastille, pour les couleurs uniquement</td><td class="k">B76E79</td></tr>
+            <tr><td class="k">parent</td><td>Le rattachement d'une sous-catégorie à sa catégorie</td><td class="k">decoration de salle</td></tr>
+            <tr><td class="k">ordre</td><td>Position dans la liste. Numéroter de 10 en 10 pour pouvoir intercaler.</td><td class="num">30</td></tr>
+            <tr><td class="k">actif</td><td><code>non</code> masque l'option sans casser les produits qui la portent</td><td class="k">oui</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="muted">
+        État actuel : 5 catégories, 35 sous-catégories, 4 univers, 9 occasions, 26 thèmes, 11 couleurs,
+        9 matières, 10 tailles, 6 finitions, plus ignifugé et fixation. Le compte à jour se lit dans la feuille STATS.
+      </p>
+    </section>
+
+    <!-- 16 -->
+    <section id="regles">
+      <div class="sec-head"><em>16</em><h2>Les huit règles</h2></div>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th class="num">№</th><th>Règle</th><th>Pourquoi</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Ne jamais modifier la ligne 3 de PRODUITS.</td><td>C'est la clé qui relie chaque colonne à Firebase et sur laquelle le script pose les menus déroulants. Le libellé de la ligne 2, lui, est libre.</td></tr>
+            <tr><td class="num">2</td><td>Ne rien taper dans une cellule bleue.</td><td>La saisie hors liste est refusée. Une valeur inconnue ne doit pas atteindre la base.</td></tr>
+            <tr><td class="num">3</td><td>Créer d'abord la valeur dans VALEURS.</td><td>Un tag n'existe que s'il est au référentiel. C'est aussi là qu'on choisit son libellé affiché et sa teinte.</td></tr>
+            <tr><td class="num">4</td><td>Remplir les slots dans l'ordre, sans répétition.</td><td>Couleur 2 avant Couleur 1, ou deux fois la même valeur : la ligne est signalée en erreur.</td></tr>
+            <tr><td class="num">5</td><td>Un groupe se pose sur au moins deux lignes, du même rayon.</td><td>Un code isolé ou deux variantes dans deux categorie différents sont des fautes de saisie, et le contrôle les signale.</td></tr>
+            <tr><td class="num">6</td><td>Ne publier qu'avec la colonne CONTRÔLE vide.</td><td>C'est la définition d'une ligne prête, et l'export s'y refuse tant qu'il en reste une. Le reste est du travail en cours : le laisser en brouillon.</td></tr>
+            <tr><td class="num">7</td><td>La référence doit être celle de l'ERP, à l'identique.</td><td>Toute la jointure avec le catalogue en dépend. Une référence approximative donne un produit sans tags.</td></tr>
+            <tr><td class="num">8</td><td>Poser le rayon d'abord, enrichir ensuite.</td><td>Catégorie et sous-catégorie sont les deux seuls tags exigés : sans eux l'article n'a aucune place dans le menu. Le reste peut attendre — une ligne incomplète se publie et se complète plus tard.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 17 -->
+    <section id="test">
+      <div class="sec-head"><em>17</em><h2>Protocole de test</h2></div>
+
+      <p class="lede">
+        Trente-deux vérifications en cinq blocs. Les trois premiers se font entièrement dans le classeur ;
+        les deux derniers après une vraie synchronisation.
+      </p>
+
+      <div class="callout warn">
+        <b class="lbl">Avant de commencer</b>
+        <p><strong>Travailler sur une copie du classeur</strong> — les tests consistent à casser volontairement des lignes.
+        Noter au départ le nombre de références saisies et la date du dernier journal <code>_SYNC</code>.</p>
+      </div>
+
+      <div class="bloc-title"><h3>Bloc A — Les garde-fous de saisie</h3><span>8 tests · dans le classeur</span></div>
+
+      <div class="scroller">
+        <table class="tests">
+          <thead><tr><th class="num">№</th><th>Ce qu'on fait</th><th>Ce qu'on doit voir</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="id">A1</td><td>Effacer la désignation ERP d'une ligne complète.</td><td class="exp">CONTRÔLE affiche <span class="mono">libellé ERP non collé</span> et le slug SEO se vide. Complét. ne bouge pas : la désignation ne s'y compte pas.</td><td class="box">☐</td></tr>
+            <tr><td class="id">A2</td><td>Recopier une référence existante sur une autre ligne.</td><td class="exp"><span class="mono">référence en double</span> apparaît sur <strong>les deux</strong> lignes.</td><td class="box">☐</td></tr>
+            <tr><td class="id">A3</td><td>Effacer la description courte.</td><td class="exp">CONTRÔLE reste <strong>vide</strong> : la description n'est pas bloquante. Seul Complét. recule.</td><td class="box">☐</td></tr>
+            <tr><td class="id">A4</td><td>Effacer la Catégorie, puis aussi la Sous-catégorie.</td><td class="exp"><span class="mono">caractéristique(s) obligatoire(s) vide(s) : 1</span> puis <span class="mono">: 2</span>. Effacer la Taille ou la Finition, en revanche, ne déclenche rien.</td><td class="box">☐</td></tr>
+            <tr><td class="id">A5</td><td>Choisir la même couleur en Couleur 1 et Couleur 2.</td><td class="exp"><span class="mono">couleur en doublon</span>.</td><td class="box">☐</td></tr>
+            <tr><td class="id">A6</td><td>Vider Couleur 1 en laissant Couleur 2 remplie.</td><td class="exp"><span class="mono">couleur : remplir les cases dans l'ordre</span>.</td><td class="box">☐</td></tr>
+            <tr><td class="id">A7</td><td>Mettre Catégorie = Carterie et Sous-catégorie = Guirlandes Fanions.</td><td class="exp"><span class="mono">sous-catégorie hors de sa catégorie</span>. Cas déjà câblé dans <code>ZZDEMO1</code>.</td><td class="box">☐</td></tr>
+            <tr><td class="id">A8</td><td>Réparer entièrement une ligne cassée.</td><td class="exp">CONTRÔLE redevient <strong>vide</strong>, Complét. = 100 %, la coloration d'alerte disparaît.</td><td class="box">☐</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bloc-title"><h3>Bloc B — Le référentiel et les listes</h3><span>6 tests · dans le classeur</span></div>
+
+      <div class="scroller">
+        <table class="tests">
+          <thead><tr><th class="num">№</th><th>Ce qu'on fait</th><th>Ce qu'on doit voir</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="id">B1</td><td>Lancer « Reconstruire les listes déroulantes », puis ouvrir un à un les menus d'une ligne produit.</td><td class="exp">Chaque menu propose <strong>les valeurs de son propre tag</strong> — Taille comprise, qui pointait auparavant sur la liste des fixations.</td><td class="box">☐</td></tr>
+            <tr><td class="id">B2</td><td>Ajouter une couleur dans VALEURS puis relancer la reconstruction (<a href="#g-valeur">§05</a>).</td><td class="exp">Elle apparaît dans LISTES puis dans le menu Couleur de PRODUITS.</td><td class="box">☐</td></tr>
+            <tr><td class="id">B3</td><td>Passer une valeur peu utilisée à <code>actif = non</code>.</td><td class="exp">Elle disparaît des menus. Les produits qui la portaient ne sont pas signalés en erreur.</td><td class="box">☐</td></tr>
+            <tr><td class="id">B4</td><td>Ajouter une sous-catégorie avec son <code>parent</code>, l'affecter à un produit (<a href="#g-souscat">§06</a>).</td><td class="exp">Le contrôle de cohérence l'accepte, même au-delà de la 35<sup>e</sup> sous-catégorie.</td><td class="box">☐</td></tr>
+            <tr><td class="id">B5</td><td>Taper une valeur au clavier dans une cellule bleue, hors liste.</td><td class="exp">Le classeur <strong>refuse</strong> la saisie et rappelle d'ajouter la valeur dans VALEURS.</td><td class="box">☐</td></tr>
+            <tr><td class="id">B6</td><td>Vérifier que la colonne Groupe accepte toujours la frappe libre.</td><td class="exp">Aucun menu déroulant : c'est un code, pas une valeur du référentiel.</td><td class="box">☐</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bloc-title"><h3>Bloc C — Les déclinaisons</h3><span>5 tests · dans le classeur</span></div>
+
+      <div class="scroller">
+        <table class="tests">
+          <thead><tr><th class="num">№</th><th>Ce qu'on fait</th><th>Ce qu'on doit voir</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="id">C1</td><td>Poser le même code de groupe sur deux références de couleurs différentes, même rayon.</td><td class="exp">CONTRÔLE reste <strong>vide</strong> sur les deux lignes.</td><td class="box">☐</td></tr>
+            <tr><td class="id">C2</td><td>Donner à ces deux lignes la même couleur <em>et</em> la même taille.</td><td class="exp"><span class="mono">groupe : deux variantes identiques</span> — rien ne les distinguerait à l'écran.</td><td class="box">☐</td></tr>
+            <tr><td class="id">C3</td><td>Ranger l'une des deux dans un autre rayon.</td><td class="exp"><span class="mono">groupe : categorie incohérents</span>.</td><td class="box">☐</td></tr>
+            <tr><td class="id">C4</td><td>Effacer le groupe d'une des deux lignes.</td><td class="exp">La ligne restante affiche <span class="mono">groupe à un seul membre</span>.</td><td class="box">☐</td></tr>
+            <tr><td class="id">C5</td><td>Constituer un groupe de deux références de même couleur mais de tailles différentes.</td><td class="exp">Aucune erreur : c'est la taille qui deviendra l'axe côté site, sans rien configurer.</td><td class="box">☐</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bloc-title"><h3>Bloc D — Export et synchronisation</h3><span>8 tests · classeur puis Drive</span></div>
+
+      <div class="scroller">
+        <table class="tests">
+          <thead><tr><th class="num">№</th><th>Ce qu'on fait</th><th>Ce qu'on doit voir</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="id">D1</td><td>Prendre un produit à deux couleurs et lire sa ligne dans EXPORT.</td><td class="exp">Un seul champ couleur : <span class="mono">or|blanc</span>. Aucune barre en trop en fin de champ.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D2</td><td>Ajouter une référence tout en bas de PRODUITS.</td><td class="exp">Elle apparaît dans EXPORT <strong>sans rien recopier</strong>, et reçoit son contrôle et son pourcentage.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D3</td><td>Laisser volontairement une ligne en anomalie et lancer « Exporter vers Drive ».</td><td class="exp">L'export <strong>refuse</strong> et nomme les références fautives. Rien n'est déposé sur le Drive.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D4</td><td>Corriger, exporter, puis ouvrir les quatre CSV déposés.</td><td class="exp">La première ligne de chaque fichier contient les clés techniques, jamais les libellés lisibles.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D5</td><td>Relancer « Exporter vers Drive » aussitôt, sans rien toucher.</td><td class="exp">Les quatre fichiers ressortent <span class="mono">inchangé</span>, l'alerte dit que rien n'a bougé, et <code>_SYNC</code> le consigne. Aucun fichier n'est réécrit sur le Drive.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D5b</td><td>Dans GROUPES, effacer le nom d'un article, puis exporter.</td><td class="exp">L'export <strong>refuse</strong> en nommant <span class="mono">groupe &lt;code&gt;</span>, comme il le ferait d'une référence fautive. Le slug de la devanture se vide au passage.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D6</td><td>Lancer la carte « Attributs produits » de <code>/admin/sync</code>, puis la relancer sans rien changer.</td><td class="exp">La seconde passe annonce tout en <span class="mono">inchangé</span>.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D7</td><td>Passer une référence en <code>brouillon</code>, retirer une valeur de VALEURS, resynchroniser.</td><td class="exp">Le compteur <span class="mono">supprimé</span> bouge des deux côtés : le classeur retire vraiment.</td><td class="box">☐</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bloc-title"><h3>Bloc E — Le rendu sur le site</h3><span>5 tests · après synchro réelle</span></div>
+
+      <div class="scroller">
+        <table class="tests">
+          <thead><tr><th class="num">№</th><th>Ce qu'on fait</th><th>Ce qu'on doit voir</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="id">E1</td><td>Ouvrir le menu des categorie depuis l'accueil.</td><td class="exp">Les 5 catégories et leurs 35 sous-catégories, dans l'ordre du classeur. Les compteurs comptent les <strong>articles</strong>.</td><td class="box">☐</td></tr>
+            <tr><td class="id">E2</td><td>Retrouver dans la grille l'article décliné du bloc C.</td><td class="exp">Une seule carte, avec la rangée de pastilles de ses variantes.</td><td class="box">☐</td></tr>
+            <tr><td class="id">E3</td><td>Cocher la couleur d'une variante <em>non canonique</em> dans les facettes.</td><td class="exp">L'article reste affiché — un groupe passe le filtre dès qu'une de ses variantes le passe.</td><td class="box">☐</td></tr>
+            <tr><td class="id">E4</td><td>Ouvrir la fiche, cliquer une autre variante, puis copier l'adresse.</td><td class="exp">L'image change, l'adresse devient <code>/produit/&lt;slug de la variante&gt;</code> et cette adresse rouvre la bonne variante.</td><td class="box">☐</td></tr>
+            <tr><td class="id">E5</td><td><strong>Le test de démonstration :</strong> passer <code>fixation</code> de <code>fiche</code> à <code>filtre_attr</code>, exporter, resynchroniser (<a href="#g-zone">§09</a>).</td><td class="exp">Fixation devient une facette filtrable. <strong>Aucune ligne de code n'a été touchée.</strong> Remettre ensuite la valeur d'origine.</td><td class="box">☐</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <b class="lbl">Critère de réussite</b>
+        <p>Les blocs A, B et C passent intégralement : la saisie est sûre, le vocabulaire évolutif, les déclinaisons
+        se décrivent sans écran dédié. D et E valident la chaîne technique. <strong>E5 est le test à montrer
+        en présentation</strong> : il résume à lui seul l'intérêt du dispositif.</p>
+      </div>
+    </section>
+
+    <!-- 18 -->
+    <section id="corrections">
+      <div class="sec-head"><em>18</em><h2>Corrigé · à trancher</h2></div>
+
+      <h3>Corrigé</h3>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Le problème</th><th>La cause, et ce qui a changé</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Six menus déroulants pointaient sur le mauvais attribut</strong> — Taille proposait des fixations, Couleur des matières.</td>
+              <td>Une liste écrite en dur dans le script oubliait <code>taille</code> : LISTES était régénérée sans cette colonne et tout glissait d'un cran. LISTES et les menus se déduisent maintenant du registre et se posent sur la clé de la ligne 3.</td>
+            </tr>
+            <tr>
+              <td><strong>Les formules s'arrêtaient à la dernière ligne saisie</strong> : la 19<sup>e</sup> référence n'aurait été ni contrôlée ni exportée, en silence.</td>
+              <td>EXPORT tient en seize formules qui couvrent toute la feuille ; contrôle et complétude descendent à la ligne 1000 ; l'export refuse de tourner si EXPORT couvre moins de références que PRODUITS.</td>
+            </tr>
+            <tr>
+              <td><strong>Le contrôle de cohérence lisait une plage figée</strong> aux 35 sous-catégories d'alors.</td>
+              <td>Il interroge désormais VALEURS en entier : le référentiel peut grossir indéfiniment.</td>
+            </tr>
+            <tr>
+              <td><strong>Un attribut ou une valeur retiré du classeur survivait en base.</strong></td>
+              <td>Le registre et le référentiel sont réconciliés comme les produits — avec un refus explicite si le fichier arrive vide, un export raté n'étant pas une demande de purge.</td>
+            </tr>
+            <tr>
+              <td><strong>Le classeur écrivait dans une collection que le site ne lisait jamais.</strong></td>
+              <td>Deux voies de synchronisation coexistaient, dont une morte. Le classeur dépose ses CSV sur le Drive, la Cloud Function fait le reste — et la clé de compte de service quitte le classeur partagé.</td>
+            </tr>
+            <tr>
+              <td><strong>Les déclinaisons se saisissaient dans un écran d'administration séparé</strong>, en texte libre, sans lien avec le référentiel.</td>
+              <td>Deux colonnes du classeur les remplacent. L'écran a été retiré ; il ne reste en back-office qu'une carte de synchronisation.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>À trancher</h3>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Constat</th><th>Conséquence</th><th>Gravité</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Doublon dans le référentiel</strong> : « Ballons Couleur unie » et « Ballons Couleur » coexistent comme deux sous-catégories.</td>
+              <td>Deux categorie pour la même famille, dont un restera vide. À fusionner côté classeur.</td>
+              <td><span class="tag t-warn">décision</span></td>
+            </tr>
+            <tr>
+              <td><strong>La jointure référence classeur ↔ référence ERP n'a jamais été éprouvée</strong> : une poignée de références décrites face à un catalogue de plusieurs milliers.</td>
+              <td>Toute la mécanique en dépend. C'est la première synchro réelle qui la validera.</td>
+              <td><span class="tag t-alert">à valider</span></td>
+            </tr>
+            <tr>
+              <td><strong>Les deux lignes ZZDEMO</strong> sont des erreurs volontaires laissées dans la feuille.</td>
+              <td>Elles bloquent l'export tant qu'elles sont là. À déplacer dans la copie de recette avant la mise en production.</td>
+              <td><span class="tag t-ok">ménage</span></td>
+            </tr>
+            <tr>
+              <td><strong>La saisie ne couvre encore qu'une fraction du catalogue</strong> — le compte à jour se lit dans la feuille STATS.</td>
+              <td>Tant que le classeur n'a pas avancé, poser un filtre vide presque toute la grille. C'est pourquoi, sans filtre actif, tous les produits visibles restent affichés.</td>
+              <td><span class="tag t-warn">en cours</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>prototype-menu-produits / Sheet_attribut.xlsx</span>
+    <span>6 feuilles · chiffres d'avancement dans la feuille STATS</span>
+    <span>Mode d'emploi — Tag article</span>
+  </footer>
+
+</div>
+
+</body></html>

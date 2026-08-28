@@ -105,6 +105,21 @@ async function invalidateCF(collection) {
   }
 }
 
+/** Purge les entrées unstable_cache de Next.js identifiées par leurs tags. */
+async function callRevalidate(tags) {
+  if (!NEXTJS_BASE_URL || !tags.length) return;
+  try {
+    await fetch(`${NEXTJS_BASE_URL}/api/revalidate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tags, secret: CACHE_SECRET }),
+    });
+    console.log(`[cache] revalidation ${tags.join(", ")} OK`);
+  } catch (e) {
+    console.warn(`[cache] revalidation ${tags.join(", ")} failed: ${e.message}`);
+  }
+}
+
 /**
  * Récupère une collection depuis le cache Next.js plutôt que depuis Firestore.
  * idField : champ de l'objet à utiliser comme clé du Map.
@@ -866,6 +881,18 @@ async function syncCommandesCsv(rows) {
 
 // ===== Handlers par nom de fichier CSV =====
 // Clés = nom exact du fichier dans le dossier Drive (sensible à la casse)
+// ===== Attributs produits : helpers de lecture du classeur =====
+const ATTR_REGISTRE_FIELDS = ["libelle", "zone", "niveau", "type", "slots", "rendu", "ordre", "actif", "axe"];
+const ATTR_VALEUR_FIELDS = ["attribut", "slug", "libelle", "hex", "parent", "ordre", "actif"];
+
+const estOui = (v) => (v || "").toString().trim().toLowerCase() === "oui";
+const entierOuNull = (v) => {
+  const n = parseInt(v, 10);
+  return Number.isNaN(n) ? null : n;
+};
+/** Un slug n'est unique qu'à l'intérieur de son attribut (« or » couleur ≠ « oui » ignifugé). */
+const attributValeurId = (attribut, slug) => `${attribut}__${slug}`.replace(/\//g, "_");
+
 const FICHIERS_SYNC = {
   // --- Exports ERP (format PDT_PDT_*, CST_CST_*, etc.) ---
   "EXP_ARTICLES_1165.CSV": async (rows) => {
@@ -1012,6 +1039,233 @@ const FICHIERS_SYNC = {
     await Promise.all(updates);
     await callCachePatch("products", changedColisage);
     return { collection: "products", modifie: count, inchange };
+  },
+
+  // --- Attributs produits (classeur Sheet_attribut) ---
+  // Chaque feuille est exportée en CSV avec pour en-tête la ligne des clés techniques :
+  // ligne 2 pour ATTRIBUTS et VALEURS, ligne 3 pour EXPORT (les lignes au-dessus sont
+  // le titre et les libellés lisibles, à ne pas exporter).
+
+  "SV_ATTRIBUTS.csv": async (rows) => {
+    const existingMap = await readCollectionMap("attribute-registry");
+    const vus = new Set();
+    let batch = db.batch();
+    let ops = 0, nouveau = 0, modifie = 0, inchange = 0;
+    for (const row of rows) {
+      const cle = (row.cle || "").toString().trim();
+      const zone = (row.zone || "").toString().trim();
+      // Les lignes de notes en bas de la feuille n'ont pas de zone : ce ne sont pas des attributs.
+      if (!cle || !zone) continue;
+      vus.add(cle);
+      const incoming = {
+        cle,
+        libelle: (row.libelle || "").toString().trim(),
+        zone,
+        niveau: entierOuNull(row.niveau),
+        type: (row.type || "").toString().trim(),
+        slots: entierOuNull(row.slots) || 1,
+        rendu: (row.rendu || "").toString().trim() || "case",
+        ordre: entierOuNull(row.ordre) || 0,
+        actif: estOui(row.actif),
+        // Porte une variante : c'est cet attribut qui distingue les membres d'un groupe.
+        axe: estOui(row.axe),
+      };
+      const existing = existingMap.get(cle);
+      if (!fieldsChanged(existing, incoming, ATTR_REGISTRE_FIELDS)) { inchange++; continue; }
+      batch.set(db.collection("attribute-registry").doc(cle), incoming, { merge: true });
+      if (existing) modifie++; else nouveau++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    // Le classeur est la source unique : un attribut retiré doit quitter la base, sinon il
+    // survivrait indéfiniment. Un CSV vide est un export raté, pas une demande de purge.
+    if (vus.size === 0) {
+      throw new Error("SV_ATTRIBUTS.csv : aucune ligne exploitable — export interrompu ou mauvaise ligne d'en-tête");
+    }
+    let supprime = 0;
+    for (const docId of existingMap.keys()) {
+      if (vus.has(docId)) continue;
+      batch.delete(db.collection("attribute-registry").doc(docId));
+      supprime++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    if (ops % 450 !== 0) await batch.commit();
+    await callRevalidate(["attribute-registry"]);
+    return { collection: "attribute-registry", nouveau, modifie, inchange, supprime };
+  },
+
+  "SV_VALEURS.csv": async (rows) => {
+    const existingMap = await readCollectionMap("attribute-values");
+    const vus = new Set();
+    let batch = db.batch();
+    let ops = 0, nouveau = 0, modifie = 0, inchange = 0;
+    for (const row of rows) {
+      const attribut = (row.attribut || "").toString().trim();
+      const slug = (row.slug || "").toString().trim();
+      if (!attribut || !slug) continue;
+      const docId = attributValeurId(attribut, slug);
+      vus.add(docId);
+      const incoming = {
+        attribut,
+        slug,
+        libelle: (row.libelle || "").toString().trim() || slug,
+        // Stocké sans « # » : le site le rajoute (teinteDe). Le classeur accepte les deux.
+        hex: (row.hex || "").toString().trim().toUpperCase().replace(/^#/, ""),
+        parent: (row.parent || "").toString().trim(),
+        ordre: entierOuNull(row.ordre) || 0,
+        actif: estOui(row.actif),
+      };
+      const existing = existingMap.get(docId);
+      if (!fieldsChanged(existing, incoming, ATTR_VALEUR_FIELDS)) { inchange++; continue; }
+      batch.set(db.collection("attribute-values").doc(docId), incoming, { merge: true });
+      if (existing) modifie++; else nouveau++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    // Même règle que le registre : une valeur retirée du classeur disparaît du référentiel.
+    if (vus.size === 0) {
+      throw new Error("SV_VALEURS.csv : aucune ligne exploitable — export interrompu ou mauvaise ligne d'en-tête");
+    }
+    let supprime = 0;
+    for (const docId of existingMap.keys()) {
+      if (vus.has(docId)) continue;
+      batch.delete(db.collection("attribute-values").doc(docId));
+      supprime++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    if (ops % 450 !== 0) await batch.commit();
+    await callRevalidate(["attribute-values"]);
+    return { collection: "attribute-values", nouveau, modifie, inchange, supprime };
+  },
+
+  "SV_PRODUITS.csv": async (rows) => {
+    // Le registre dit quelles colonnes portent plusieurs valeurs (slots > 1),
+    // donc lesquelles éclater sur « | ». Sans lui, impossible de savoir.
+    const registre = await readCollectionMap("attribute-registry");
+    if (registre.size === 0) {
+      throw new Error("attribute-registry vide : synchroniser SV_ATTRIBUTS.csv avant SV_PRODUITS.csv");
+    }
+    const attributs = [...registre.values()];
+    // Pas de libelle : la designation vient de l'ERP (pdt_designation), le classeur ne
+    // la recopie pas. Les documents ecrits avant cette regle gardent le champ, sans effet.
+    const champsCompares = ["statut", "description_courte", "seo_slug", ...attributs.map((a) => a.cle)];
+
+    const existingMap = await readCollectionMap("product-attributes");
+    const vus = new Set();
+    let batch = db.batch();
+    let ops = 0, nouveau = 0, modifie = 0, inchange = 0, ignore = 0;
+
+    for (const row of rows) {
+      const ref = (row.ref || "").toString().trim();
+      if (!ref) continue;
+      // Le classeur porte aussi des brouillons et des archives : seul « actif » est publié.
+      if ((row.statut || "").toString().trim() !== "actif") { ignore++; continue; }
+      const docId = ref.replace(/\//g, "__");
+      vus.add(docId);
+
+      const incoming = {
+        ref,
+        statut: "actif",
+        description_courte: (row.description_courte || "").toString().trim(),
+        seo_slug: (row.seo_slug || "").toString().trim(),
+      };
+      for (const attr of attributs) {
+        // Le classeur repete la colonne par slot (« Univers 1 », « Univers 2 »)
+        // et Papa Parse renomme les homonymes : univers, univers_1, univers_2.
+        // Sans les relire tous, les slots au-dela du premier seraient perdus.
+        const slots = attr.slots > 1 ? attr.slots : 1;
+        const brut = [];
+        for (let i = 0; i < slots; i++) {
+          brut.push((row[i === 0 ? attr.cle : `${attr.cle}_${i}`] || "").toString().trim());
+        }
+        const valeurs = brut.join("|").split("|").map((s) => s.trim()).filter(Boolean);
+        incoming[attr.cle] = attr.slots > 1 ? valeurs : (valeurs[0] || "");
+      }
+
+      const existing = existingMap.get(docId);
+      const change = !existing || champsCompares.some((f) =>
+        Array.isArray(incoming[f]) ? arrayChanged(existing[f], incoming[f]) : existing[f] !== incoming[f]
+      );
+      if (!change) { inchange++; continue; }
+      batch.set(db.collection("product-attributes").doc(docId), incoming, { merge: true });
+      if (existing) modifie++; else nouveau++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    // Une référence repassée en brouillon ou retirée du classeur doit quitter la vitrine.
+    let supprime = 0;
+    for (const docId of existingMap.keys()) {
+      if (vus.has(docId)) continue;
+      batch.delete(db.collection("product-attributes").doc(docId));
+      supprime++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    if (ops % 450 !== 0) await batch.commit();
+    await callRevalidate(["product-attributes"]);
+    return { collection: "product-attributes", nouveau, modifie, inchange, supprime, ignore };
+  },
+
+  // Une ligne par article decline : sa devanture. Rien la-dedans n'est une reference
+  // de l'ERP et rien ne s'achete — c'est ce qu'on voit avant d'avoir choisi. Sans
+  // registre a lire, ce handler ne depend d'aucun autre, mais il vient en dernier :
+  // un code de groupe n'a de sens qu'une fois les produits ecrits.
+  "SV_GROUPES.csv": async (rows) => {
+    const slugifier = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const champsCompares = ["designation", "description", "image_ref", "seo_slug"];
+    const existingMap = await readCollectionMap("attribute-groups");
+    const vus = new Set();
+    let batch = db.batch();
+    let ops = 0, nouveau = 0, modifie = 0, inchange = 0, ignore = 0;
+
+    for (const row of rows) {
+      const groupe = (row.groupe || "").toString().trim();
+      if (!groupe) continue;
+      if ((row.actif || "").toString().trim().toLowerCase() === "non") { ignore++; continue; }
+      const docId = groupe.replace(/\//g, "__");
+      vus.add(docId);
+
+      const designation = (row.designation || row.libelle || "").toString().trim();
+      const incoming = {
+        groupe,
+        designation,
+        description: (row.description || "").toString().trim(),
+        image_ref: (row.image_ref || row.image || "").toString().trim(),
+        // Le classeur peut ne pas exporter l'URL : on la derive alors de l'entete.
+        seo_slug: (row.seo_slug || "").toString().trim() || slugifier(designation),
+      };
+
+      const existing = existingMap.get(docId);
+      const change = !existing || champsCompares.some((f) => existing[f] !== incoming[f]);
+      if (!change) { inchange++; continue; }
+      batch.set(db.collection("attribute-groups").doc(docId), incoming, { merge: true });
+      if (existing) modifie++; else nouveau++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    // Un groupe defait au classeur doit cesser de coiffer ses references.
+    let supprime = 0;
+    for (const docId of existingMap.keys()) {
+      if (vus.has(docId)) continue;
+      batch.delete(db.collection("attribute-groups").doc(docId));
+      supprime++;
+      ops++;
+      if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+
+    if (ops % 450 !== 0) await batch.commit();
+    await callRevalidate(["attribute-groups"]);
+    return { collection: "attribute-groups", nouveau, modifie, inchange, supprime, ignore };
   },
 };
 
@@ -1329,8 +1583,11 @@ async function syncFichiersParNoms(nomsFichiers) {
 
   const resultats = {};
   let trouve = false;
-  for (const fichier of fichiers) {
-    if (!nomsFichiers.includes(fichier.name)) continue;
+  // Parcours dans l'ordre de nomsFichiers, pas dans celui du Drive : certains fichiers
+  // dépendent d'un autre déjà synchronisé (SV_PRODUITS.csv a besoin de SV_ATTRIBUTS.csv).
+  for (const nom of nomsFichiers) {
+    const fichier = fichiers.find((f) => f.name === nom);
+    if (!fichier) continue;
     const handler = FICHIERS_SYNC[fichier.name];
     if (!handler) continue;
     trouve = true;
@@ -1353,6 +1610,9 @@ const FICHIERS_PAR_TYPE = {
   clients:        ["EXP_CLIENTS_1165.CSV", "Clients_Final.csv"],
   commandes:      ["EXP_COMMANDES_1165.CSV"],
   colisage:       ["EXP_COLISAGE_1165.CSV"],
+  // Ordre significatif : le registre décrit les colonnes que SV_PRODUITS.csv doit éclater,
+  // et les groupes ne coiffent que des références déjà écrites.
+  attributs:      ["SV_ATTRIBUTS.csv", "SV_VALEURS.csv", "SV_PRODUITS.csv", "SV_GROUPES.csv"],
 };
 
 const SYNC_TYPE_TO_COLLECTION = {
@@ -1362,6 +1622,7 @@ const SYNC_TYPE_TO_COLLECTION = {
   clients:        "clients",
   commandes:      "orders",
   colisage:       "products",
+  attributs:      "product-attributes",
 };
 
 function makeSyncHandler(type) {
@@ -1385,6 +1646,7 @@ exports.syncTarifs         = makeSyncHandler("tarifs");
 exports.syncClients        = makeSyncHandler("clients");
 exports.syncCommandes      = makeSyncHandler("commandes");
 exports.syncColisage       = makeSyncHandler("colisage");
+exports.syncAttributs      = makeSyncHandler("attributs");
 
 // ===== Email de commande =====
 // Variables d'environnement requises dans functions/.env :

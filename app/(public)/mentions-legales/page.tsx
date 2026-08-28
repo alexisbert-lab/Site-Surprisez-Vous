@@ -10,7 +10,7 @@ export default function MentionsLegalesPage() {
         <EditableText page="mentions-legales" id="h1">Mentions légales</EditableText>
       </h1>
 
-      <div className="bg-white border border-border rounded-xl p-6 space-y-6 text-sm text-ink leading-relaxed">
+      <div className="bg-surface border border-border rounded-xl p-6 space-y-6 text-sm text-ink leading-relaxed">
         <section>
           <h2 className="text-base font-bold text-ink mb-2">
             <EditableText page="mentions-legales" id="s1_title">Éditeur du site</EditableText>

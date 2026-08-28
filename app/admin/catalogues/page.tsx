@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
 import { thClass, tdClass, btnPrimSm, btnSecSm, cardClass } from '@/lib/admin-styles';
@@ -230,9 +230,8 @@ export default function AdminCataloguesPage() {
                   const isOpen = expandedCat === cat.cat_id;
                   const clients = catClients[cat.cat_id];
                   return (
-                    <>
+                    <Fragment key={cat.cat_id}>
                       <tr
-                        key={cat.cat_id}
                         onClick={() => toggleCat(cat.cat_id)}
                         className={`border-b border-gray-100 cursor-pointer transition-colors ${isOpen ? 'bg-sv-primary-light' : 'hover:bg-sv-primary-light/30'}`}
                       >
@@ -246,7 +245,7 @@ export default function AdminCataloguesPage() {
                         <td className={tdClass}>{cat.cat_permanent ? 'Oui' : 'Non'}</td>
                       </tr>
                       {isOpen && (
-                        <tr key={`${cat.cat_id}-clients`} className="border-b border-gray-100 bg-gray-50/60">
+                        <tr className="border-b border-gray-100 bg-gray-50/60">
                           <td colSpan={6} className="px-6 py-3">
                             {clients === 'loading' ? (
                               <p className="text-xs text-gray-400">Chargement…</p>
@@ -272,7 +271,7 @@ export default function AdminCataloguesPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

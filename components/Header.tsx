@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/useCart';
@@ -13,16 +13,26 @@ import EditableText from '@/components/editable/EditableText';
 import EditableImage from '@/components/editable/EditableImage';
 import EditableBlock from '@/components/editable/EditableBlock';
 import EditableLink from '@/components/editable/EditableLink';
+import MenuCategories, { MenuCategoriesMobile } from '@/components/catalogue/MenuCategories';
+import { buildRegistry } from '@/lib/attributes';
+import type { AttributeDef, AttributeValue } from '@/lib/firestore/attributes';
 
+// `megaMenu` : l'entrée cède la place au panneau des catégories dès que le registre
+// d'attributs est disponible ; sinon elle reste un lien classique.
 const NAV_ITEMS = [
-  { label: 'Accueil',      href: '/',                       sub: null },
-  { label: 'Nos produits', href: '/catalogue',              sub: [{ label: 'Par gamme', href: '/catalogue?tab=gamme' }, { label: 'Par marque', href: '/catalogue?tab=marque' }, { label: 'Recherche', href: '/catalogue?tab=search' }] },
-  { label: 'Gammes',       href: '/catalogue?tab=gamme',   sub: null },
-  { label: 'Marques',      href: '/catalogue?tab=marque',  sub: null },
-  { label: 'Showrooms',    href: '/showroom',               sub: null },
+  { label: 'Accueil',      href: '/',                       sub: null,                                                                                                             megaMenu: false },
+  { label: 'Nos produits', href: '/catalogue',              sub: [{ label: 'Tout le catalogue', href: '/catalogue' }, { label: 'Par occasion', href: '/univers' }], megaMenu: true },
+  { label: 'Occasions',    href: '/univers',                sub: null,                                                                                                             megaMenu: false },
+  { label: 'Showrooms',    href: '/showroom',               sub: null,                                                                                                             megaMenu: false },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  attributeDefs?: AttributeDef[];
+  attributeValues?: AttributeValue[];
+  compteursMenu?: Record<string, number>;
+}
+
+export default function Header({ attributeDefs = [], attributeValues = [], compteursMenu = {} }: HeaderProps) {
   const { profile } = useAuth();
   const { totalItems } = useCart();
   const isPro = profile?.role === 'pro' || profile?.role === 'admin';
@@ -31,23 +41,59 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const lastScrollY = useRef(0);
 
+  // Référentiel absent (collections pas encore synchronisées) : le header garde
+  // ses entrées classiques, aucune régression.
+  const reg = useMemo(() => buildRegistry(attributeDefs, attributeValues), [attributeDefs, attributeValues]);
+  const categoriesPretes = reg.menu.length > 0 && reg.valeurs.length > 0;
+
   useEffect(() => {
+    // Sans seuil de remontée, le moindre soubresaut vers le haut faisait
+    // retomber la barre sur le contenu déjà lu.
+    const SEUIL_REMONTEE = 60;
+    let remontee = 0;
     const onScroll = () => {
       const y = window.scrollY;
+      const delta = y - lastScrollY.current;
       setScrolled(y > 10);
-      if (y > lastScrollY.current && y > 80) setHidden(true);
-      else if (y < lastScrollY.current) setHidden(false);
+      if (delta > 0 && y > 80) {
+        remontee = 0;
+        setHidden(true);
+      } else if (delta < 0) {
+        remontee -= delta;
+        if (remontee > SEUIL_REMONTEE || y < 80) setHidden(false);
+      }
       lastScrollY.current = y;
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Le header est en `fixed` : sa hauteur pilote le décalage du contenu et des
+  // colonnes collantes, sinon il rogne tout ce qui passe dessous.
+  useEffect(() => {
+    const el = document.querySelector<HTMLElement>('[data-sv-header]');
+    if (!el) return;
+    const publier = () =>
+      document.documentElement.style.setProperty('--sv-header-h', `${el.offsetHeight}px`);
+    publier();
+    const ro = new ResizeObserver(publier);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--sv-header-visible-h',
+      hidden ? '0px' : 'var(--sv-header-h)',
+    );
+  }, [hidden]);
+
   return (
     <EditableBlock
       as="header"
       page="header"
       id="header_bg"
+      data-sv-header=""
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 300,
         boxShadow: scrolled ? '0 4px 24px rgba(0,0,0,0.12)' : '0 1px 0 #e2e8f0',
@@ -142,18 +188,23 @@ export default function Header() {
         className="hidden md:block"
         style={{ borderTop: '2px solid #f4f4f6' }}
       >
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 44 }}>
+        {/* position relative : le méga-panneau se cale sur la largeur du conteneur */}
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 44, position: 'relative' }}>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 4, height: '100%' }}>
-            {NAV_ITEMS.map((item, i) => (
-              <NavItem
-                key={i}
-                page="header"
-                hrefId={`nav_${i}_href`}
-                href={item.href}
-                label={<EditableText page="header" id={`nav_${i}`}>{item.label}</EditableText>}
-                sub={item.sub ?? undefined}
-              />
-            ))}
+            {NAV_ITEMS.map((item, i) =>
+              item.megaMenu && categoriesPretes ? (
+                <MenuCategories key={i} reg={reg} compteurs={compteursMenu} variante="header" />
+              ) : (
+                <NavItem
+                  key={i}
+                  page="header"
+                  hrefId={`nav_${i}_href`}
+                  href={item.href}
+                  label={<EditableText page="header" id={`nav_${i}`}>{item.label}</EditableText>}
+                  sub={item.sub ?? undefined}
+                />
+              )
+            )}
           </nav>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {[
@@ -205,10 +256,17 @@ export default function Header() {
           <SearchBar className="mb-3" />
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {NAV_ITEMS.map(item => (
-              <Link key={item.label} href={item.href} onClick={() => setMobileOpen(false)}
-                style={{ padding: '10px 0', borderBottom: '1px solid #f4f4f6', fontSize: 14, fontWeight: 700, color: '#1e2a35', textDecoration: 'none' }}>
-                {item.label}
-              </Link>
+              <div key={item.label}>
+                <Link href={item.href} onClick={() => setMobileOpen(false)}
+                  style={{ display: 'block', padding: '10px 0', borderBottom: '1px solid #f4f4f6', fontSize: 14, fontWeight: 700, color: '#1e2a35', textDecoration: 'none' }}>
+                  {item.label}
+                </Link>
+                {item.megaMenu && categoriesPretes && (
+                  <div className="pl-2 pb-2">
+                    <MenuCategoriesMobile reg={reg} compteurs={compteursMenu} onNaviguer={() => setMobileOpen(false)} />
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>

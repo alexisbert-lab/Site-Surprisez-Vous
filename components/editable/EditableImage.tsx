@@ -71,7 +71,7 @@ export default function EditableImage({ page, id, src, alt, className, fallback 
       )}
 
       {showInput && (
-        <span className="absolute top-full left-0 z-50 mt-1 bg-white shadow-xl rounded-xl p-3 border border-purple-200 w-80 flex flex-col gap-2">
+        <span className="absolute top-full left-0 z-50 mt-1 bg-surface shadow-xl rounded-xl p-3 border border-purple-200 w-80 flex flex-col gap-2">
           <span className="text-xs font-semibold text-gray-600">URL de l&apos;image</span>
           <input
             type="text"

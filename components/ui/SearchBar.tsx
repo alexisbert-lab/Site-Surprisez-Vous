@@ -7,10 +7,12 @@ interface SearchBarProps {
   placeholder?: string;
   onSearch?: (query: string) => void;
   className?: string;
+  /** Pré-remplit le champ, par exemple depuis le paramètre `q` de l'URL. */
+  initialValue?: string;
 }
 
-export default function SearchBar({ placeholder = 'Rechercher un produit, une référence...', onSearch, className = '' }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+export default function SearchBar({ placeholder = 'Rechercher un produit, une référence...', onSearch, className = '', initialValue = '' }: SearchBarProps) {
+  const [query, setQuery] = useState(initialValue);
   const [focused, setFocused] = useState(false);
   const router = useRouter();
 
