@@ -85,3 +85,27 @@ export async function getFooterSettings(): Promise<FooterSettings> {
 export async function saveFooterSettings(settings: FooterSettings): Promise<void> {
   await setDoc(doc(db(), COLLECTION, 'footer'), settings);
 }
+
+/** Catalogue téléchargeable. `pdf_url` : PDF hébergé (Firebase Storage). `calameo_url` : lien Calaméo
+ *  optionnel pour bascule ultérieure (feuilletage). Un seul catalogue pour l'instant. */
+export interface CatalogueSettings {
+  pdf_url: string;
+  pdf_filename: string;
+  calameo_url: string;
+}
+
+export const DEFAULT_CATALOGUE: CatalogueSettings = {
+  pdf_url: '',
+  pdf_filename: '',
+  calameo_url: '',
+};
+
+export async function getCatalogueSettings(): Promise<CatalogueSettings> {
+  const snap = await getDoc(doc(db(), COLLECTION, 'catalogue'));
+  if (!snap.exists()) return DEFAULT_CATALOGUE;
+  return { ...DEFAULT_CATALOGUE, ...snap.data() } as CatalogueSettings;
+}
+
+export async function saveCatalogueSettings(settings: CatalogueSettings): Promise<void> {
+  await setDoc(doc(db(), COLLECTION, 'catalogue'), settings);
+}

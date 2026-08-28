@@ -14,6 +14,8 @@ import { useTarif } from '@/lib/useTarif';
 import { useAuth } from '@/lib/auth-context';
 import { ArrowLeft, ImageOff, ShoppingCart, Check, Plus, Minus, SlidersHorizontal, X, ArrowUpDown } from 'lucide-react';
 import { ProductImage } from '@/components/ui/ProductImage';
+import CatalogueDownload from '@/components/catalogue/CatalogueDownload';
+import { type CatalogueSettings } from '@/lib/firestore/site-settings';
 
 type SortBy = '' | 'ref_asc' | 'ref_desc' | 'designation_asc' | 'designation_desc' | 'price_asc' | 'price_desc';
 
@@ -34,6 +36,7 @@ interface InitialData {
   declinations: Declination[];
   stockSettings: StockSettings;
   statCategories: StatCategory[];
+  catalogue: CatalogueSettings;
 }
 
 function buildItems(products: Product[], declinations: Declination[]): DisplayItem[] {
@@ -507,7 +510,10 @@ export default function ProCatalogueClient({ initialData }: { initialData: Initi
   // ── Vue catalogue ──
   return (
     <>
-      <h1 className="text-xl font-bold mb-2 text-sv-primary font-[family-name:var(--font-heading)]">Catalogue Pro</h1>
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+        <h1 className="text-xl font-bold text-sv-primary font-[family-name:var(--font-heading)]">Catalogue Pro</h1>
+        <CatalogueDownload settings={initialData.catalogue} />
+      </div>
 
       {/* ── Drawer mobile overlay ── */}
       {drawerOpen && (
