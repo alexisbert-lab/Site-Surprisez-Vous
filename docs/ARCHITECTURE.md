@@ -154,9 +154,9 @@ Autres contextes : `auth-context` (session, rôle), `cart-context` (panier pro),
 
 | Cible | Mécanisme |
 |---|---|
-| Site Next.js | **Firebase App Hosting** — build au push, `apphosting.yaml` (1 CPU / 512 Mio, 0→4 instances, variables + secret `CACHE_SECRET`) |
-| Cloud Functions | `firebase deploy --only functions` |
-| Règles | `firebase deploy --only firestore:rules` · `--only storage` · `--only database` |
+| Site Next.js | **Firebase App Hosting** — `npm run deploy:preprod`, `apphosting.yaml` (1 CPU / 512 Mio, 0→4 instances, variables + secret `CACHE_SECRET`). La construction automatique au push est désactivée : le rollout est déclenché à la main, depuis la branche `develop` telle qu'elle est sur GitHub |
+| Cloud Functions | `npm run deploy:functions` |
+| Règles | `npm run deploy:rules` — Firestore, Storage et Realtime Database d'un coup |
 | Émulateurs | Auth (9099) + Firestore (8080), `firebase.json` |
 
 Workflow git : `feature/<sujet>` → PR vers `develop` → PR `develop` → `main`.

@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
-    "deploy": "rm -rf .next out && next build && firebase deploy --only hosting",
+    "deploy:preprod": "firebase apphosting:rollouts:create backend-surprisez-vous -b develop --force",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage,database",
+    "deploy:functions": "firebase deploy --only functions",
     "start": "next start",
     "lint": "next lint",
     "local:data": "node scripts/local-data.mjs",
