@@ -32,7 +32,7 @@ export default function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 shadow-xl">
+    <div className="fixed bottom-0 inset-x-0 z-50 bg-surface border-t border-gray-200 shadow-xl">
       <div className="max-w-[1200px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p className="text-sm text-gray-600 flex-1">
           Nous utilisons des cookies analytiques (Google Analytics via Firebase) pour mesurer l&apos;audience et améliorer nos services.{' '}

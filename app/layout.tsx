@@ -3,6 +3,7 @@ import { Montserrat, Nunito } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
 import { SiteThemeProvider } from '@/lib/site-theme-context';
 import { getCachedThemeColors, getCachedHeaderSettings, getCachedFooterSettings } from '@/lib/server-cache';
+import { variablesTheme } from '@/lib/theme-vars';
 import './globals.css';
 
 const montserrat = Montserrat({ subsets: ['latin'], variable: '--font-montserrat', weight: ['400', '600', '700', '800'] });
@@ -21,7 +22,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   ]);
 
   return (
-    <html lang="fr" className={`${montserrat.variable} ${nunito.variable}`}>
+    <html
+      lang="fr"
+      className={`${montserrat.variable} ${nunito.variable}`}
+      style={variablesTheme(colors) as React.CSSProperties}
+    >
       <body>
         <AuthProvider>
           <SiteThemeProvider initialColors={colors} initialHeader={header} initialFooter={footer}>

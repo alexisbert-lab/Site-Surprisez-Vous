@@ -63,7 +63,7 @@ export default function FicheTechniquePage() {
     <div className="max-w-[1200px] mx-auto px-4 sm:px-5 py-8">
 
       {/* ── Barre de recherche de référence ── */}
-      <div className="bg-white border border-border rounded-xl p-5 mb-8 shadow-sm">
+      <div className="bg-surface border border-border rounded-xl p-5 mb-8 shadow-sm">
         <label className="block text-sm font-semibold text-ink mb-3">
           <EditableText page="fiche-technique" id="label_search">Saisissez la référence pour consulter la fiche technique</EditableText>
         </label>
@@ -99,7 +99,7 @@ export default function FicheTechniquePage() {
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
             {DEMO_LOTS.map((lot) => (
-              <div key={lot.id} className="bg-white border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <div key={lot.id} className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <div
                   className="h-40 flex items-center justify-center text-6xl"
                   style={{ backgroundColor: lot.bg }}
@@ -158,7 +158,7 @@ export default function FicheTechniquePage() {
                 {PRODUCT_DETAIL.specs.map((s, i) => (
                   <div
                     key={s.label}
-                    className={`flex gap-4 px-4 py-2 text-sm ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                    className={`flex gap-4 px-4 py-2 text-sm ${i % 2 === 0 ? 'bg-surface' : 'bg-gray-50'}`}
                   >
                     <span className="font-semibold text-ink min-w-[180px] shrink-0">{s.label}</span>
                     <span className="text-ink-secondary">{s.value}</span>

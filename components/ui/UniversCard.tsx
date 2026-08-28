@@ -13,7 +13,7 @@ export default function UniversCard({ nom, codeGamme, description, href, classNa
   return (
     <Link
       href={href}
-      className={`group relative bg-white border border-border rounded-xl overflow-hidden hover:shadow-lg transition-all block ${className}`}
+      className={`group relative bg-surface border border-border rounded-xl overflow-hidden hover:shadow-lg transition-all block ${className}`}
     >
       {/* Image ambiance placeholder */}
       <div className="bg-gradient-to-br from-sv-primary/10 to-sv-orange/10 h-44 flex items-center justify-center text-sv-grey-dark text-xs">

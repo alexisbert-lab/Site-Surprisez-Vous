@@ -36,7 +36,7 @@ function CartButton() {
           </span>
         )}
       </Link>
-      <div className="absolute right-0 top-full mt-2 hidden group-hover:flex flex-col gap-1 bg-white border border-border rounded-xl shadow-lg px-4 py-3 w-52 z-50 pointer-events-none">
+      <div className="absolute right-0 top-full mt-2 hidden group-hover:flex flex-col gap-1 bg-surface border border-border rounded-xl shadow-lg px-4 py-3 w-52 z-50 pointer-events-none">
         {cartNom && (
           <span className="text-xs font-semibold text-ink truncate">{cartNom}</span>
         )}
@@ -53,7 +53,7 @@ export default function ProHeader({ onSearch }: ProHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-border shadow-md">
+    <header className="sticky top-0 z-50 bg-surface border-b border-border shadow-md">
       {/* Info bar */}
       <div className="hidden sm:block text-white text-xs py-1.5" style={{ backgroundColor: colors.sv_primary }}>
         <div className="max-w-[1400px] mx-auto px-4 sm:px-5 flex items-center justify-between">
@@ -126,7 +126,7 @@ export default function ProHeader({ onSearch }: ProHeaderProps) {
           <CartButton />
           <button
             onClick={logout}
-            className="ml-4 px-3 py-1.5 border text-sm text-ink-secondary rounded-lg hover:bg-sv-grey-light transition-colors cursor-pointer"
+            className="ml-4 px-3 py-1.5 border text-sm text-ink-secondary rounded-lg hover:bg-section-alt transition-colors cursor-pointer"
             style={{ borderColor: colors.sv_primary + '33' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = colors.sv_primary)}
             onMouseLeave={(e) => (e.currentTarget.style.color = '')}
@@ -140,7 +140,7 @@ export default function ProHeader({ onSearch }: ProHeaderProps) {
           <CartButton />
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1.5 rounded-lg hover:bg-sv-grey-light transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-section-alt transition-colors cursor-pointer"
             aria-label="Menu"
           >
             {menuOpen
@@ -153,7 +153,7 @@ export default function ProHeader({ onSearch }: ProHeaderProps) {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t border-border px-4 pb-4 pt-2 bg-white flex flex-col gap-1">
+        <div className="md:hidden border-t border-border px-4 pb-4 pt-2 bg-surface flex flex-col gap-1">
           {/* Mobile search */}
           <div className="sm:hidden mb-2">
             <ProSearchInput />

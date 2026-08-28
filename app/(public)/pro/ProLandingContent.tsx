@@ -139,7 +139,7 @@ export default function ProLandingContent() {
         {/* Posts Instagram */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {POSTS_INSTAGRAM.map((post, i) => (
-            <div key={i} className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+            <div key={i} className="bg-surface border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
               <div className="p-4 flex items-center gap-3 border-b border-gray-50">
                 <div className="w-10 h-10 rounded-full bg-sv-primary flex items-center justify-center">
                   <span className="text-white font-black text-sm">SV</span>

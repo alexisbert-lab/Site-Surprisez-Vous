@@ -58,7 +58,7 @@ export default function ProSearchInput({ className = '' }: { className?: string 
           onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
           placeholder="Rechercher par référence, désignation, EAN..."
           autoComplete="off"
-          className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-sv-primary focus:ring-2 focus:ring-sv-primary/20"
+          className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:border-sv-primary focus:ring-2 focus:ring-sv-primary/20"
         />
         {query && (
           <button type="button" onClick={() => { setQuery(''); setSuggestions([]); setShowDropdown(false); }}
@@ -67,7 +67,7 @@ export default function ProSearchInput({ className = '' }: { className?: string 
           </button>
         )}
         {showDropdown && (
-          <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-lg overflow-hidden">
+          <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface border border-border rounded-xl shadow-lg overflow-hidden">
             {suggestions.map((p) => (
               <button key={p.pdt_reference} type="button"
                 onMouseDown={() => selectSuggestion(p)}

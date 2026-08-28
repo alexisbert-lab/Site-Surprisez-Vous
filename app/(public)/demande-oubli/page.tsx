@@ -49,7 +49,7 @@ export default function DemandeOubliPage() {
         Conformément au RGPD, vous pouvez demander la suppression de vos données personnelles.
       </p>
 
-      <form onSubmit={handleSubmit} className="bg-white border border-border rounded-xl p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 space-y-5">
         <div>
           <label className="block text-xs font-medium text-ink-secondary mb-1">Adresse email associée à votre compte *</label>
           <input

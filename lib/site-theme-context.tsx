@@ -7,6 +7,7 @@ import {
   type FooterSettings, DEFAULT_FOOTER,
 } from './firestore/site-settings';
 import { api } from './api';
+import { variablesTheme } from './theme-vars';
 
 interface SiteThemeContextValue {
   colors: ThemeColors;
@@ -24,20 +25,7 @@ const SiteThemeContext = createContext<SiteThemeContextValue>({
 
 function applyColors(c: ThemeColors) {
   const root = document.documentElement;
-  root.style.setProperty('--color-sv-primary', c.sv_primary);
-  root.style.setProperty('--color-sv-primary-dark', c.sv_primary_dark);
-  root.style.setProperty('--color-sv-primary-light', c.sv_primary_light);
-  root.style.setProperty('--color-sv-orange', c.sv_orange);
-  root.style.setProperty('--color-sv-orange-dark', c.sv_orange_dark);
-  root.style.setProperty('--color-sv-orange-light', c.sv_orange_light);
-  root.style.setProperty('--color-primary', c.sv_primary);
-  root.style.setProperty('--color-primary-dark', c.sv_primary_dark);
-  root.style.setProperty('--color-primary-light', c.sv_primary_light);
-  root.style.setProperty('--color-secondary', c.sv_orange);
-  root.style.setProperty('--color-secondary-dark', c.sv_orange_dark);
-  root.style.setProperty('--color-secondary-light', c.sv_orange_light);
-  root.style.setProperty('--color-accent', c.sv_orange);
-  root.style.setProperty('--color-accent-alt', c.sv_primary);
+  Object.entries(variablesTheme(c)).forEach(([nom, valeur]) => root.style.setProperty(nom, valeur));
 }
 
 interface SiteThemeProviderProps {

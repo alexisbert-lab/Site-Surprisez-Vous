@@ -7,7 +7,7 @@ import Link from 'next/link';
 import type { Product } from '@/lib/firestore/products';
 import { useIframeEdit } from '@/lib/iframe-edit-context';
 
-const BG_COLORS = ['#fdeaef', '#e8f8f7', '#eef0fb', '#fde8dd', '#f0edf8', '#fafbfc'];
+const BG_COLORS = ['#fdeaef', '#e8f8f7', '#eef0fb', '#fde8dd', '#f0edf8', 'var(--color-bg)'];
 
 function ProductCard({ product, badge, index }: { product: Product; badge: string; index: number }) {
   const [hov, setHov] = useState(false);
@@ -15,7 +15,7 @@ function ProductCard({ product, badge, index }: { product: Product; badge: strin
 
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} style={{
-      background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0',
+      background: 'var(--color-surface)', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0',
       transform: hov ? 'translateY(-6px)' : 'none',
       boxShadow: hov ? '0 16px 40px rgba(232,24,90,0.07)' : '0 2px 8px rgba(0,0,0,0.04)',
       transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', cursor: 'pointer', position: 'relative',
@@ -71,7 +71,7 @@ export function SectionProduits({ title, titleId, badge, viewAllId, sectionId, p
   };
 
   return (
-    <section style={{ background: '#fff', padding: '80px 32px', position: 'relative' }}>
+    <section style={{ background: 'var(--color-surface)', padding: '80px 32px', position: 'relative' }}>
       {isIframeMode && sectionId && (
         <button
           onClick={(e) => { e.stopPropagation(); handleEditSection(); }}

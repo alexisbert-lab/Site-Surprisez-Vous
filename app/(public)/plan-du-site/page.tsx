@@ -38,7 +38,7 @@ export default function PlanDuSitePage() {
       <h1 className="text-2xl font-extrabold text-sv-primary mb-6 font-[family-name:var(--font-heading)]">
         Plan du site
       </h1>
-      <div className="bg-white border border-border rounded-xl p-6 grid sm:grid-cols-3 gap-8">
+      <div className="bg-surface border border-border rounded-xl p-6 grid sm:grid-cols-3 gap-8">
         {sections.map((section) => (
           <div key={section.title}>
             <h2 className="text-sm font-bold text-ink uppercase tracking-wide mb-3">{section.title}</h2>

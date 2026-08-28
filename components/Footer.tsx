@@ -58,7 +58,7 @@ export default function Footer() {
             <p className="text-white/80 text-sm mb-4 leading-relaxed"><EditableText page="footer" id="col3_desc" multiline>Recevez nos dernières nouveautés et offres exclusives en avant-première.</EditableText></p>
             <div className="flex flex-col gap-2">
               <div className="flex rounded-lg overflow-hidden">
-                <input type="email" placeholder="Votre e-mail" className="flex-1 px-3 py-2 text-sm outline-none min-w-0 bg-white" />
+                <input type="email" placeholder="Votre e-mail" className="flex-1 px-3 py-2 text-sm outline-none min-w-0 bg-surface" />
                 <button className="bg-sv-yellow hover:opacity-90 px-3 flex items-center justify-center text-white transition-opacity cursor-pointer">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                 </button>
@@ -97,7 +97,7 @@ export default function Footer() {
       </div>
 
       {/* ── SECTION 4 — Mentions légales ── */}
-      <div className="bg-white border-t border-gray-100">
+      <div className="bg-surface border-t border-gray-100">
         <div className="max-w-[1200px] mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between text-xs text-gray-500 gap-2">
           <div className="flex items-center gap-2 flex-wrap justify-center">
             <Link href="/mentions-legales" className="hover:text-sv-primary transition-colors">Mentions légales &amp; RGPD</Link>
