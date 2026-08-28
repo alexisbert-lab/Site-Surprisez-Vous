@@ -11,6 +11,7 @@ import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { getFirebaseAuth, getFirebaseDb } from './firebase';
 import { getClientByEmail, linkClientToUser, type Client } from './firestore/clients';
 import { prefetchUserData, clearPrefetchCache } from './prefetch';
+import { AUTH_LOCALE, UTILISATEUR_LOCAL } from './local-auth';
 
 // Cache module-level : évite de requêter Firestore à chaque onAuthStateChanged
 const clientCache = new Map<string, Client | null>();
@@ -36,6 +37,14 @@ interface UserProfile {
     tel: string;
   };
 }
+
+/** Profil servi avec `UTILISATEUR_LOCAL` : aucun aller-retour Firestore. */
+const PROFIL_LOCAL: UserProfile = {
+  role: 'admin',
+  nom: 'Admin (mode local)',
+  entreprise: 'Surprisez-Vous',
+  tarif_grid_id: 'erp_gene11',
+};
 
 interface AuthContextType {
   user: User | null;
@@ -105,11 +114,15 @@ async function fetchUserProfile(uid: string, email?: string | null): Promise<Use
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(AUTH_LOCALE ? UTILISATEUR_LOCAL : null);
+  const [profile, setProfile] = useState<UserProfile | null>(AUTH_LOCALE ? PROFIL_LOCAL : null);
+  const [loading, setLoading] = useState(!AUTH_LOCALE);
 
   useEffect(() => {
+    // Mode local : ni écouteur Firebase, ni lecture du profil, ni préchargement —
+    // la session est déjà posée et rien ne doit sortir de la machine.
+    if (AUTH_LOCALE) return;
+
     const unsubscribe = onAuthStateChanged(getFirebaseAuth(), async (firebaseUser) => {
       setUser(firebaseUser);
       try {
@@ -129,10 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithEmail = async (email: string, password: string) => {
+    if (AUTH_LOCALE) return;
     await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
   };
 
   const logout = async () => {
+    if (AUTH_LOCALE) return;
     await signOut(getFirebaseAuth());
     setProfile(null);
     clientCache.clear();      // cache email→Client (module-level Map)

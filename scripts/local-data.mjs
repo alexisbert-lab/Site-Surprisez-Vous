@@ -96,7 +96,9 @@ function inventaireSources() {
   ligne('Attributs', csvDuClasseur('attribut') ?? join(CSV_DIR, 'SV_ATTRIBUTS.csv'), 'blocs du prototype');
   ligne('Valeurs', csvDuClasseur('valeur') ?? join(CSV_DIR, 'SV_VALEURS.csv'), 'blocs du prototype');
   ligne('Attributs produits', csvProduits(), 'aucun repli, le script s\'arrete');
+  ligne('Groupes', csvDuClasseur('groupe') ?? join(CSV_DIR, 'SV_GROUPES.csv'), 'pas de declinaisons decrites');
   if (erp) ligne('Export ERP', CSV_ERP, 'aucun repli, le script s\'arrete');
+  else if (demo) ligne('Designations ERP', CSV_ERP, 'les produits affichent leur reference');
   console.log('');
 }
 
@@ -296,11 +298,23 @@ function completerAttributs(produits, attributsClasseur, registre, valeurs) {
   return { attributs: out, deduits };
 }
 
+/**
+ * Depuis que le libelle a quitte l'export du classeur — c'est la designation de
+ * l'ERP, pas une saisie — le mode demo n'a plus de nom a afficher. Quand l'export
+ * ERP est sur le poste, il les fournit ; sinon les cartes portent leur reference.
+ */
+function designationsErp() {
+  if (!existsSync(CSV_ERP)) return {};
+  const out = {};
+  for (const p of produitsErp()) out[p.pdt_reference] = p.pdt_designation;
+  return out;
+}
+
 /** PublicProduct ne porte que 6 champs : le classeur suffit a fabriquer une vitrine. */
-function produitsDemo(attributs, designations) {
+function produitsDemo(attributs, designations, erp = {}) {
   return Object.values(attributs).map((a) => ({
     pdt_reference: a.ref,
-    pdt_designation: designations[a.ref] || a.ref,
+    pdt_designation: designations[a.ref] || erp[a.ref] || a.ref,
     pdt_code_stat: '',
     pdt_etat: 'A',
     pdt_ean: '',
@@ -308,22 +322,30 @@ function produitsDemo(attributs, designations) {
   }));
 }
 
+const slugifier = (s) =>
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
 /**
  * Feuille GROUPES : une ligne par article decline. Absente, le site retombe sur le
  * comportement d'avant — chef trie par reference, aucune description de groupe.
  */
 function chargerGroupes() {
-  const csv = join(CSV_DIR, 'SV_GROUPES.csv');
-  if (!existsSync(csv)) return {};
+  const csv = csvDuClasseur('groupe');
+  if (!csv) return {};
   const out = {};
   for (const row of lireCsv(csv, 'groupe')) {
     const groupe = (row.groupe ?? '').trim();
     if (!groupe) continue;
     if ((row.actif ?? '').trim().toLowerCase() === 'non') continue;
+    const designation = (row.designation ?? row.libelle ?? '').trim();
     out[groupe] = {
       groupe,
-      ref_principale: (row.ref_principale ?? '').trim(),
+      designation,
       description: (row.description ?? '').trim(),
+      image_ref: (row.image_ref ?? row.image ?? '').trim(),
+      // Le classeur peut ne pas exporter l'URL : on la derive alors de l'entete.
+      seo_slug: (row.seo_slug ?? '').trim() || slugifier(designation),
     };
   }
   return out;
@@ -350,7 +372,7 @@ async function main() {
   console.log('Fichiers ecrits :');
   ecrire('attribute-registry', registre);
   ecrire('attribute-values', valeurs);
-  ecrire('product-groups', chargerGroupes());
+  ecrire('attribute-groups', chargerGroupes());
   if (ignore) console.log(`  ${ignore} ligne(s) du classeur non « actif » ignorée(s)`);
 
   let produits;
@@ -369,10 +391,17 @@ async function main() {
     ecrire('product-attributes', attributsProduits);
     console.log(`  ${Object.keys(attributsClasseur).length} du classeur, ${complete.deduits} déduits`);
   } else if (demo) {
-    produits = produitsDemo(attributsClasseur, designations);
+    const erpNoms = designationsErp();
+    produits = produitsDemo(attributsClasseur, designations, erpNoms);
     ecrire('product-attributes', attributsProduits);
     ecrire('products', produits);
     ecrire('stat-categories', []);
+    const nommes = produits.filter((p) => p.pdt_designation !== p.pdt_reference).length;
+    console.log(
+      Object.keys(erpNoms).length
+        ? `  ${nommes}/${produits.length} désignation(s) trouvée(s) (classeur + export ERP)`
+        : `  export ERP absent — les produits sans libellé affichent leur référence`,
+    );
   } else {
     ecrire('product-attributes', attributsProduits);
     const base = process.env.NEXT_PUBLIC_CACHE_CF_URL ?? lireEnvLocal().NEXT_PUBLIC_CACHE_CF_URL;
