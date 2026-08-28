@@ -1,4 +1,5 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore, type Query, type DocumentData } from 'firebase-admin/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -8,12 +9,12 @@ const serviceAccount = JSON.parse(
   fs.readFileSync(serviceAccountPath, 'utf8')
 );
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+initializeApp({
+  credential: cert(serviceAccount),
   databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`,
 });
 
-const db = admin.firestore();
+const db = getFirestore();
 
 // Collections to clear
 const COLLECTIONS = [
@@ -38,7 +39,7 @@ async function deleteCollection(collectionPath: string, batchSize = 100) {
   let query = db.collection(collectionPath);
 
   async function deleteQueryBatch(
-    query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>,
+    query: Query<DocumentData>,
     batchSize: number
   ): Promise<number> {
     const snapshot = await query.limit(batchSize).get();

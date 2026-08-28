@@ -1,15 +1,14 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
 const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+initializeApp({ credential: cert(serviceAccount) });
 
-const db = admin.firestore();
+const db = getFirestore();
 
 async function resetClientUids() {
   const snap = await db.collection('clients').where('uid', '!=', null).get();
@@ -26,7 +25,7 @@ async function resetClientUids() {
   for (let i = 0; i < docs.length; i += batchSize) {
     const batch = db.batch();
     docs.slice(i, i + batchSize).forEach((d) => {
-      batch.update(d.ref, { uid: admin.firestore.FieldValue.delete() });
+      batch.update(d.ref, { uid: FieldValue.delete() });
     });
     await batch.commit();
     cleared += Math.min(batchSize, docs.length - i);
