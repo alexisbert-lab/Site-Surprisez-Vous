@@ -120,7 +120,7 @@ async function main() {
 
   if (!ECRIRE) {
     console.log(`\n${total} documents seraient écrits. Relancer avec --go.`);
-    process.exit(0);
+    return;
   }
   console.log(`\n✅ ${total} documents écrits.`);
 
@@ -137,7 +137,9 @@ async function main() {
         : `⚠️  Revalidation refusée (${res.status}) — le cache retombera de lui-même sous 24 h`,
     );
   }
-  process.exit(0);
+  // Sans cette fermeture, le SDK laisse ses connexions gRPC ouvertes et Node
+  // s'arrête sur une assertion libuv après avoir pourtant tout écrit.
+  await db.terminate();
 }
 
 main().catch((e) => {
