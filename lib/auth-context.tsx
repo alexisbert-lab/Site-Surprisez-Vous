@@ -143,7 +143,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithEmail = async (email: string, password: string) => {
     if (AUTH_LOCALE) return;
-    await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+    // `loading` doit couvrir toute la résolution de la session, pas seulement la
+    // première. Sans ça, entre la connexion réussie et l'arrivée du profil par
+    // `onAuthStateChanged`, les gardes voient `user: null` avec `loading: false`
+    // et renvoient vers la page de connexion, qui renvoie aussitôt vers /admin.
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+    } catch (e) {
+      setLoading(false); // l'écouteur ne se déclenchera pas : à nous de rendre la main
+      throw e;
+    }
   };
 
   const logout = async () => {
