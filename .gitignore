@@ -101,3 +101,6 @@ serviceAccountKey.json
 Clients_Final.csv
 exports_erp/
 functions/Architecture site SV.txt
+
+# Uploads du mode local (editeur hors ligne)
+/public/local-uploads/

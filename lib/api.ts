@@ -1,4 +1,6 @@
 import { getCached, setCached } from './client-cache';
+import { MODE_LOCAL } from './local-mode';
+import { lireStoreLocal, lireStoreLocalEntier } from './local-store';
 import type { Product } from './firestore/products';
 import type { Category } from './firestore/categories';
 import type { StatCategory } from './firestore/stat-categories';
@@ -69,11 +71,19 @@ export interface SiteSettings {
 }
 
 export const api = {
-  getProducts:       () => fetchCollection<Product[]>('products'),
+  getProducts:       async () => MODE_LOCAL
+    ? (await lireStoreLocalEntier<Product[]>('products')) ?? []
+    : fetchCollection<Product[]>('products'),
   getCategories:     () => fetchCollection<Category[]>('categories'),
   getStatCategories: () => fetchCollection<StatCategory[]>('stat-categories'),
-  getPageContent:    (page: string) => fetchCollection<Record<string, string>>('page-content', { page }),
-  getSiteSettings:   () => fetchCollection<SiteSettings>('site-settings'),
+  // Mode local : la Cloud Function servirait le contenu de production, alors que
+  // l'éditeur vient d'écrire dans `.local-data/`.
+  getPageContent:    async (page: string) => MODE_LOCAL
+    ? (await lireStoreLocal<Record<string, string>>('page-content', page)) ?? {}
+    : fetchCollection<Record<string, string>>('page-content', { page }),
+  getSiteSettings:   async () => MODE_LOCAL
+    ? (await lireStoreLocalEntier<SiteSettings>('site-settings')) ?? { theme: {}, header: {}, footer: {} }
+    : fetchCollection<SiteSettings>('site-settings'),
   getCatalogues:     () => fetchCollection<Catalogue[]>('catalogues'),
   getMarques:        () => fetchCollection<Marque[]>('marques'),
   getTarifLines:     (gridId: string, idToken: string) => fetchCollection<TarifLine[]>('tarif-lines', { gridId }, idToken),
@@ -89,7 +99,7 @@ export const api = {
   getStockSettings:  () => fetchCollection<StockSettings>('stock-settings'),
 
   invalidate: (collection: string) => {
-    if (!CF_BASE) return Promise.resolve();
+    if (!CF_BASE || MODE_LOCAL) return Promise.resolve();
     return fetch(`${CF_BASE}/data/invalidate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

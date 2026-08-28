@@ -9,7 +9,7 @@
  * Le referentiel (attributs, valeurs, attributs produits) ne touche jamais Firebase :
  * il vient des CSV du classeur, ou a defaut du prototype.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import Papa from 'papaparse';
 import { deriverAttributs } from './attributs-demo.mjs';
@@ -57,12 +57,54 @@ function lireBlocPrototype(nom) {
 
 const vrai = (v) => String(v ?? '').trim().toLowerCase() === 'oui' || v === true;
 const nombre = (v) => Number(String(v ?? '').replace(',', '.')) || 0;
+const court = (chemin) => chemin.replace(RACINE, '.');
+
+/**
+ * Un onglet du classeur, reconnu par un mot dans le nom du fichier : Sheets
+ * exporte « Classeur SV - ATTRIBUTS.csv », renommer trois fichiers a chaque
+ * export serait la premiere chose qu'on oublie. Le plus recent l'emporte.
+ *
+ * « Sheet attribut - PRODUITS.csv » porte les deux mots : les onglets attributs
+ * et valeurs ecartent donc explicitement les fichiers de produits.
+ */
+function csvDuClasseur(motCle) {
+  if (!existsSync(CSV_DIR)) return null;
+  const exclus = motCle === 'produit' ? [] : ['produit', ...(motCle === 'attribut' ? ['valeur'] : [])];
+  return readdirSync(CSV_DIR)
+    .filter((f) => {
+      const n = f.toLowerCase();
+      return n.endsWith('.csv') && n.includes(motCle) && !exclus.some((x) => n.includes(x));
+    })
+    .map((f) => join(CSV_DIR, f))
+    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0] ?? null;
+}
+
+/**
+ * Etat des entrees avant tout traitement : sans ce recapitulatif, rien ne
+ * distingue a l'ecran un classeur relu d'un classeur oublie, et on croit avoir
+ * mis a jour le site alors que le script est reparti sur le prototype.
+ */
+function inventaireSources() {
+  const ligne = (role, chemin, repli) => {
+    const etat = existsSync(chemin)
+      ? `${court(chemin)}  (modifie le ${statSync(chemin).mtime.toLocaleString('fr-FR')})`
+      : `absent → ${repli}`;
+    console.log(`  ${role.padEnd(20)} ${etat}`);
+  };
+
+  console.log(`Sources (deposer les exports du classeur dans ${court(CSV_DIR)}) :`);
+  ligne('Attributs', csvDuClasseur('attribut') ?? join(CSV_DIR, 'SV_ATTRIBUTS.csv'), 'blocs du prototype');
+  ligne('Valeurs', csvDuClasseur('valeur') ?? join(CSV_DIR, 'SV_VALEURS.csv'), 'blocs du prototype');
+  ligne('Attributs produits', csvProduits(), 'aucun repli, le script s\'arrete');
+  if (erp) ligne('Export ERP', CSV_ERP, 'aucun repli, le script s\'arrete');
+  console.log('');
+}
 
 // ── Referentiel ───────────────────────────────────────────────────────────────
 
 function chargerRegistre() {
-  const csv = join(CSV_DIR, 'SV_ATTRIBUTS.csv');
-  const brut = existsSync(csv) ? lireCsv(csv, 'cle') : lireBlocPrototype('REGISTRE');
+  const csv = csvDuClasseur('attribut');
+  const brut = csv ? lireCsv(csv, 'cle') : lireBlocPrototype('REGISTRE');
   return brut
     .filter((r) => r.cle)
     .map((r) => ({
@@ -80,8 +122,8 @@ function chargerRegistre() {
 }
 
 function chargerValeurs() {
-  const csv = join(CSV_DIR, 'SV_VALEURS.csv');
-  const brut = existsSync(csv) ? lireCsv(csv, 'attribut') : lireBlocPrototype('VALEURS');
+  const csv = csvDuClasseur('valeur');
+  const brut = csv ? lireCsv(csv, 'attribut') : lireBlocPrototype('VALEURS');
   return brut
     .filter((r) => r.attribut && r.slug)
     .map((r) => ({
@@ -112,23 +154,34 @@ function valeursDuSlot(row, attr) {
     .filter(Boolean);
 }
 
+/** Le CSV depose dans `.local-data/csv/` prime sur celui laisse a la racine. */
+function csvProduits() {
+  return csvDuClasseur('produit') ?? CSV_PRODUITS_RACINE;
+}
+
 function chargerProduits(registre) {
-  const csv = existsSync(join(CSV_DIR, 'SV_PRODUITS.csv'))
-    ? join(CSV_DIR, 'SV_PRODUITS.csv')
-    : CSV_PRODUITS_RACINE;
+  const csv = csvProduits();
+  if (!existsSync(csv)) {
+    console.error(`Aucun CSV de produits : deposer SV_PRODUITS.csv dans ${court(CSV_DIR)}`);
+    console.error(`(ou « Sheet attribut - PRODUITS.csv » a la racine du projet), puis relancer.`);
+    process.exit(1);
+  }
   const rows = lireCsv(csv, 'ref');
 
   const out = {};
+  // Le libelle est la designation ERP : il ne fait pas partie des attributs, mais la
+  // feuille complete le porte encore, et le mode demo s'en sert pour fabriquer l'ERP.
+  const designations = {};
   let ignore = 0;
   for (const row of rows) {
     const ref = (row.ref ?? '').trim();
     // La legende du classeur suit les produits, separee par une ligne vide.
     if (!ref) break;
     if ((row.statut ?? '').trim() !== 'actif') { ignore++; continue; }
+    designations[ref] = (row.libelle ?? '').trim();
 
     const attrs = {
       ref,
-      libelle: (row.libelle ?? '').trim(),
       statut: 'actif',
       description_courte: (row.description_courte ?? '').trim(),
       seo_slug: (row.seo_slug ?? '').trim(),
@@ -139,7 +192,7 @@ function chargerProduits(registre) {
     }
     out[ref] = attrs;
   }
-  return { produits: out, ignore, source: csv };
+  return { produits: out, designations, ignore, source: csv };
 }
 
 // ── Produits du site ──────────────────────────────────────────────────────────
@@ -244,10 +297,10 @@ function completerAttributs(produits, attributsClasseur, registre, valeurs) {
 }
 
 /** PublicProduct ne porte que 6 champs : le classeur suffit a fabriquer une vitrine. */
-function produitsDemo(attributs) {
+function produitsDemo(attributs, designations) {
   return Object.values(attributs).map((a) => ({
     pdt_reference: a.ref,
-    pdt_designation: a.libelle,
+    pdt_designation: designations[a.ref] || a.ref,
     pdt_code_stat: '',
     pdt_etat: 'A',
     pdt_ean: '',
@@ -265,12 +318,15 @@ function ecrire(nom, data) {
 
 async function main() {
   mkdirSync(SORTIE, { recursive: true });
+  // Le dossier existe toujours : c'est la que se deposent les CSV du classeur.
+  mkdirSync(CSV_DIR, { recursive: true });
+  inventaireSources();
 
   const registre = chargerRegistre();
   const valeurs = chargerValeurs();
-  const { produits: attributsClasseur, ignore, source } = chargerProduits(registre);
+  const { produits: attributsClasseur, designations, ignore, source } = chargerProduits(registre);
 
-  console.log(`Référentiel (${existsSync(join(CSV_DIR, 'SV_ATTRIBUTS.csv')) ? 'CSV du classeur' : 'prototype'}) :`);
+  console.log('Fichiers ecrits :');
   ecrire('attribute-registry', registre);
   ecrire('attribute-values', valeurs);
   if (ignore) console.log(`  ${ignore} ligne(s) du classeur non « actif » ignorée(s)`);
@@ -283,30 +339,26 @@ async function main() {
       process.exit(1);
     }
     produits = produitsErp();
-    console.log(`Produits (export ERP, ${produits.length} références uniques) :`);
     ecrire('products', produits);
     ecrire('stat-categories', []);
 
     const complete = completerAttributs(produits, attributsClasseur, registre.filter((d) => d.actif), valeurs);
     attributsProduits = complete.attributs;
-    console.log(`Attributs produits (classeur + déduction sur la désignation) :`);
     ecrire('product-attributes', attributsProduits);
     console.log(`  ${Object.keys(attributsClasseur).length} du classeur, ${complete.deduits} déduits`);
   } else if (demo) {
-    produits = produitsDemo(attributsClasseur);
-    console.log(`Attributs produits (${source.replace(RACINE, '.')}) :`);
+    produits = produitsDemo(attributsClasseur, designations);
     ecrire('product-attributes', attributsProduits);
     ecrire('products', produits);
     ecrire('stat-categories', []);
   } else {
-    console.log(`Attributs produits (${source.replace(RACINE, '.')}) :`);
     ecrire('product-attributes', attributsProduits);
     const base = process.env.NEXT_PUBLIC_CACHE_CF_URL ?? lireEnvLocal().NEXT_PUBLIC_CACHE_CF_URL;
     if (!base) {
       console.error('NEXT_PUBLIC_CACHE_CF_URL absent — relancer avec --demo pour un local hors ligne.');
       process.exit(1);
     }
-    console.log(`Produits (cache Cloud Function ${base}) :`);
+    console.log(`  produits lus depuis le cache Cloud Function (${base})`);
     produits = await depuisCF(base, 'products');
     ecrire('products', produits);
     ecrire('stat-categories', await depuisCF(base, 'stat-categories'));
@@ -316,6 +368,23 @@ async function main() {
   if (!existsSync(join(SORTIE, 'marques.json'))) ecrire('marques', []);
   if (!existsSync(join(SORTIE, 'product-marques.json'))) ecrire('product-marques', {});
 
+  // Personnalisation : l'éditeur écrit dans ces deux fichiers. Les réglages du
+  // site s'amorcent depuis le cache CF quand il répond, le contenu de page part
+  // vide — chaque bloc retombe alors sur le texte écrit dans le code.
+  if (!existsSync(join(SORTIE, 'page-content.json'))) ecrire('page-content', {});
+  if (!existsSync(join(SORTIE, 'site-settings.json'))) {
+    const cf = process.env.NEXT_PUBLIC_CACHE_CF_URL ?? lireEnvLocal().NEXT_PUBLIC_CACHE_CF_URL;
+    let reglages = {};
+    if (cf) {
+      try {
+        reglages = await depuisCF(cf, 'site-settings');
+      } catch (e) {
+        console.log(`  site-settings non récupérés (${e.message}) — fichier vide`);
+      }
+    }
+    ecrire('site-settings', reglages);
+  }
+
   const refsSite = new Set(produits.map((p) => p.pdt_reference));
   const apparies = Object.keys(attributsProduits).filter((r) => refsSite.has(r)).length;
   console.log(`\n${apparies}/${produits.length} produit(s) du site portent des attributs.`);
@@ -323,7 +392,10 @@ async function main() {
     console.log('Aucune correspondance : le menu afficherait des compteurs à zéro.');
     console.log('→ relancer avec : npm run local:data -- --demo');
   }
-  console.log('\nAjouter SV_LOCAL_DATA=1 dans .env.local, puis npm run dev.');
+  console.log('\nMettre à jour plus tard : remplacer les CSV dans .local-data/csv/, relancer');
+  console.log('« npm run local:data », puis recharger la page — le site relit les fichiers à chaud.');
+  console.log('\nDans .env.local : SV_LOCAL_DATA=1 (le site lit les fixtures) et');
+  console.log('NEXT_PUBLIC_SV_LOCAL_DATA=1 (l\'éditeur et la personnalisation écrivent dedans).');
 }
 
 main().catch((e) => {
