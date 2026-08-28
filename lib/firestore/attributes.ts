@@ -54,21 +54,34 @@ export interface ProductAttributes {
 }
 
 /**
- * Une ligne de la feuille GROUPES : ce qu'un article décliné porte en propre,
- * par-delà ses références. Sans elle, un groupe n'a ni chef désigné ni description.
+ * Une ligne de la feuille GROUPES : la **devanture** d'un article décliné.
+ *
+ * Ce n'est pas une référence : rien de tout cela n'existe dans l'ERP, et rien de tout
+ * cela ne s'achète. C'est ce qu'on voit avant d'avoir choisi une déclinaison — un nom,
+ * une description, une image. Les références achetables sont les membres du groupe.
  */
 export interface ProductGroup {
   groupe: string;
-  /** Référence maître : son image, sa désignation, son URL canonique. */
-  ref_principale: string;
-  /** Affichée tant que le maître est sélectionné, jamais sur une variante. */
+  /** Nom de l'article, sur la carte du catalogue et en tête de sa fiche. */
+  designation: string;
+  /** Description de l'article ; une variante choisie montre la sienne à la place. */
   description: string;
+  /**
+   * Fichier de Storage, sous `products/`. Vide, on retombe sur le code de groupe :
+   * `products/<groupe>.jpg`. Y mettre la référence d'un membre réutilise sa photo
+   * plutôt que d'en déposer une copie.
+   */
+  image_ref: string;
+  /** Dérivé de la désignation par le classeur : l'URL de l'article. */
+  seo_slug: string;
 }
 
 const REGISTRY_COLLECTION = 'attribute-registry';
 const VALUES_COLLECTION = 'attribute-values';
 const PRODUCT_ATTRIBUTES_COLLECTION = 'product-attributes';
-const PRODUCT_GROUPS_COLLECTION = 'product-groups';
+// `product-groups` est déjà pris par les groupes produit↔catégorie (categories.ts).
+// Le préfixe `attribute-` range celle-ci avec le reste de ce qui vient du classeur.
+const ATTRIBUTE_GROUPS_COLLECTION = 'attribute-groups';
 
 /**
  * Le référentiel peut être absent : collections pas encore créées, règles pas encore
@@ -112,8 +125,8 @@ export async function getProductAttributes(): Promise<Record<string, ProductAttr
 
 /** Indexé par code de groupe : c'est par lui que `clefGroupe` retrouve l'entrée. */
 export async function getProductGroups(): Promise<Record<string, ProductGroup>> {
-  return lireOuVide(PRODUCT_GROUPS_COLLECTION, async () => {
-    const snap = await getDocs(collection(db(), PRODUCT_GROUPS_COLLECTION));
+  return lireOuVide(ATTRIBUTE_GROUPS_COLLECTION, async () => {
+    const snap = await getDocs(collection(db(), ATTRIBUTE_GROUPS_COLLECTION));
     const out: Record<string, ProductGroup> = {};
     snap.docs.forEach((d) => {
       const data = d.data() as ProductGroup;

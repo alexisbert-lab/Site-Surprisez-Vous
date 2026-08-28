@@ -110,7 +110,7 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    match /product-groups/{groupe} {
+    match /attribute-groups/{groupe} {
       allow read: if true;
       allow write: if false;
     }

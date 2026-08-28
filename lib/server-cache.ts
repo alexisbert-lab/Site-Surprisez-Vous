@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import {
-  getProducts, toPublicProduct, filterArticlesVisiblesWithStatCats,
+  getProducts, toPublicProduct, filterArticlesVisiblesWithStatCats, sansLignesOrphelines,
   type Product, type PublicProduct,
 } from './firestore/products';
 import { getCategories, type Category } from './firestore/categories';
@@ -51,9 +51,9 @@ export async function getCachedProducts(): Promise<Product[]> {
   if (process.env.NEXT_PHASE === 'phase-production-build') return [];
   // Avant le mémo : éditer un fixture doit se voir au rechargement suivant.
   const local = lireLocal<Product[]>('products');
-  if (local) return local;
+  if (local) return sansLignesOrphelines(local);
   if (g._sv_products != null) return g._sv_products;
-  g._sv_products = (await fetchFromCF<Product[]>('products')) ?? await getProducts();
+  g._sv_products = sansLignesOrphelines((await fetchFromCF<Product[]>('products')) ?? await getProducts());
   return g._sv_products;
 }
 
@@ -166,11 +166,11 @@ export const getCachedProductAttributes = async (): Promise<Record<string, Produ
 
 const _productGroups = unstable_cache(
   async (): Promise<Record<string, ProductGroup>> => getProductGroups(),
-  ['product-groups'],
-  CACHE_OPTS(['product-groups'])
+  ['attribute-groups'],
+  CACHE_OPTS(['attribute-groups'])
 );
 export const getCachedProductGroups = async (): Promise<Record<string, ProductGroup>> =>
-  lireLocal<Record<string, ProductGroup>>('product-groups') ?? _productGroups();
+  lireLocal<Record<string, ProductGroup>>('attribute-groups') ?? _productGroups();
 
 /**
  * Compteurs du méga-menu, par slug de sous-catégorie. Le Header est rendu sur

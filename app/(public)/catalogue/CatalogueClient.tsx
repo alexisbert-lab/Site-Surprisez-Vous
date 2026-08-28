@@ -11,11 +11,10 @@ import {
 } from '@/lib/firestore/attributes';
 import {
   buildRegistry, valeursDe, libelleDe, teinteDe, selectionVide, correspond, compte,
-  bascule, selectionVersParams, paramsVersSelection, type Selection, type Registry,
+  bascule, selectionVersParams, paramsVersSelection, type Selection,
 } from '@/lib/attributes';
 import { grouper, type Groupe } from '@/lib/declinaisons';
 import MenuCategories from '@/components/catalogue/MenuCategories';
-import ListeDeclinaisons from '@/components/catalogue/ListeDeclinaisons';
 import { ProductImage } from '@/components/ui/ProductImage';
 import Link from 'next/link';
 import { X } from 'lucide-react';
@@ -35,25 +34,35 @@ interface Props {
 const PASTILLES_CARTE = 6;
 
 // memo : sans lui, chaque lot chargé re-rendait toutes les cartes déjà montées.
-const GroupeCard = memo(function GroupeCard({ groupe, onSelect }: {
+const GroupeCard = memo(function GroupeCard({ groupe }: {
   groupe: Groupe<PublicProduct>;
-  onSelect: (g: Groupe<PublicProduct>) => void;
 }) {
-  const { chef, variantes, axe } = groupe;
+  const { chef, devanture, variantes, axe } = groupe;
   const enPastilles = axe?.rendu === 'pastille';
-  return (
-    <button
-      onClick={() => onSelect(groupe)}
-      className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col text-left hover:shadow-md hover:border-sv-primary/60 transition-all cursor-pointer"
-    >
+  // La devanture parle pour l'article ; sans elle, le premier membre en tient lieu.
+  const imageRef = devanture?.imageRef || chef.pdt_reference;
+  const titre = devanture?.designation || chef.pdt_designation;
+  // La carte ouvre la fiche de la devanture, sinon celle du chef de groupe. Slug vide
+  // tant que la référence n'est pas décrite dans le classeur : la carte reste inerte.
+  const slug =
+    devanture?.seoSlug ||
+    variantes.find((v) => v.produit.pdt_reference === chef.pdt_reference)?.seoSlug ||
+    '';
+  const classe = 'bg-surface border border-border rounded-xl overflow-hidden flex flex-col text-left transition-all';
+  const contenu = (
+    <>
       <div className="aspect-square bg-section-alt flex items-center justify-center overflow-hidden">
-        <ProductImage imageRef={chef.pdt_reference} className="w-full h-full object-contain p-2" />
+        <ProductImage imageRef={imageRef} className="w-full h-full object-contain p-2" />
       </div>
       <div className="p-3 flex flex-col gap-1">
-        <p className="text-xs text-ink-secondary font-mono">{chef.pdt_reference}</p>
-        <p className="text-sm font-semibold text-ink leading-tight line-clamp-2">{chef.pdt_designation}</p>
-        {groupe.description && (
-          <p className="text-xs text-ink-secondary leading-snug line-clamp-2">{groupe.description}</p>
+        {/* Une devanture n'a pas de référence : afficher celle d'un membre laisserait
+            croire que c'est elle qu'on commande. */}
+        {!devanture && (
+          <p className="text-xs text-ink-secondary font-mono">{chef.pdt_reference}</p>
+        )}
+        <p className="text-sm font-semibold text-ink leading-tight line-clamp-2">{titre}</p>
+        {devanture?.description && (
+          <p className="text-xs text-ink-secondary leading-snug line-clamp-2">{devanture.description}</p>
         )}
         {variantes.length > 1 && (
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
@@ -77,7 +86,17 @@ const GroupeCard = memo(function GroupeCard({ groupe, onSelect }: {
           </div>
         )}
       </div>
-    </button>
+    </>
+  );
+  return slug ? (
+    <Link
+      href={`/produit/${slug}`}
+      className={`${classe} hover:shadow-md hover:border-sv-primary/60 cursor-pointer`}
+    >
+      {contenu}
+    </Link>
+  ) : (
+    <div className={classe}>{contenu}</div>
   );
 });
 
@@ -92,9 +111,8 @@ const MARGE = 1400;
  * une sentinelle dépassée d'un coup de molette sort du champ de l'observateur et
  * le chargement s'arrête net, la grille se terminant en plein milieu du catalogue.
  */
-function ProductGrid({ groupes, onSelect }: {
+function ProductGrid({ groupes }: {
   groupes: Groupe<PublicProduct>[];
-  onSelect: (g: Groupe<PublicProduct>) => void;
 }) {
   const [limit, setLimit] = useState(BATCH);
 
@@ -126,7 +144,7 @@ function ProductGrid({ groupes, onSelect }: {
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {groupes.slice(0, limit).map((g) => (
-          <GroupeCard key={g.clef} groupe={g} onSelect={onSelect} />
+          <GroupeCard key={g.clef} groupe={g} />
         ))}
       </div>
       {limit < groupes.length && (
@@ -135,138 +153,6 @@ function ProductGrid({ groupes, onSelect }: {
         </p>
       )}
     </>
-  );
-}
-
-/** Modale plein écran : toutes les zones du registre, y compris `fiche` qui n'existe qu'ici. */
-function FicheProduit({ groupe, reg, onClose }: {
-  groupe: Groupe<PublicProduct>;
-  reg: Registry;
-  onClose: () => void;
-}) {
-  // La modale est montée avec une `key` sur le groupe : changer d'article la remonte,
-  // donc la variante repart toujours du chef.
-  const [refSel, setRefSel] = useState(groupe.chef.pdt_reference);
-  const variante =
-    groupe.variantes.find((v) => v.produit.pdt_reference === refSel) ?? groupe.variantes[0];
-  const produit = variante.produit;
-  const attrs = variante.attrs;
-
-  // Le maître parle pour l'article entier ; une variante choisie ne parle que d'elle.
-  // Sans groupe décrit, on retombe sur la description de la référence : rien ne se perd.
-  const description =
-    produit.pdt_reference === groupe.chef.pdt_reference
-      ? groupe.description || attrs?.description_courte || ''
-      : attrs?.description_courte ?? '';
-
-  // Escape ferme, et le fond ne défile pas sous la modale.
-  useEffect(() => {
-    const surTouche = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', surTouche);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', surTouche);
-      document.body.style.overflow = overflow;
-    };
-  }, [onClose]);
-
-  const ligne = (def: AttributeDef) => {
-    const brut = attrs?.[def.cle];
-    const vals = (Array.isArray(brut) ? brut : brut ? [brut] : []).filter(Boolean);
-    return (
-      <div key={def.cle} className="grid grid-cols-[130px_1fr] gap-4 py-2.5 border-b border-border/60 last:border-0">
-        <dt className="text-sm font-semibold text-ink">{def.libelle}</dt>
-        <dd className="text-sm text-ink-secondary">
-          {vals.length ? vals.map((v) => libelleDe(reg, def.cle, v)).join(', ') : '—'}
-        </dd>
-      </div>
-    );
-  };
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center p-3 sm:p-8"
-      // Le header est à 300 : la modale doit passer au-dessus.
-      style={{ zIndex: 400, backdropFilter: 'blur(2px)' }}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={produit.pdt_designation}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col"
-      >
-        <div className="h-0.75 shrink-0" style={{ background: 'linear-gradient(90deg,#E8185A,#F5A623,#3DBDB0)' }} />
-
-        <button
-          onClick={onClose}
-          aria-label="Fermer"
-          className="absolute top-5 right-5 z-10 w-9 h-9 bg-white/90 border border-border rounded-full flex items-center justify-center hover:bg-section-alt hover:border-sv-primary transition-colors cursor-pointer"
-        >
-          <X size={18} />
-        </button>
-
-        <div className="grid md:grid-cols-2 overflow-y-auto">
-          <div className="bg-section-alt flex items-center justify-center p-6 md:p-10 md:h-full md:min-h-125">
-            <ProductImage
-              imageRef={produit.pdt_reference}
-              className="w-full h-full max-h-100 object-contain"
-            />
-          </div>
-
-          <div className="p-6 md:p-9">
-            <p className="text-xs text-ink-secondary font-mono">{produit.pdt_reference}</p>
-            <h2 className="text-2xl font-extrabold text-ink leading-tight mt-1.5 font-[family-name:var(--font-heading)]">
-              {produit.pdt_designation}
-            </h2>
-            {description && (
-              <p className="text-base text-ink-secondary mt-4 leading-relaxed">{description}</p>
-            )}
-
-            {groupe.variantes.length > 1 && (
-              <div className="mt-6">
-                <ListeDeclinaisons
-                  variantes={groupe.variantes}
-                  refSel={refSel}
-                  onSelect={setRefSel}
-                  titre={groupe.axe?.libelle ?? 'Déclinaisons'}
-                  pastilles={groupe.axe?.rendu === 'pastille'}
-                />
-              </div>
-            )}
-
-            {attrs ? (
-              <dl className="mt-7">
-                <div className="grid grid-cols-[130px_1fr] gap-4 py-2.5 border-b border-border/60">
-                  <dt className="text-sm font-semibold text-ink">Catégorie</dt>
-                  <dd className="text-sm text-ink-secondary">
-                    {libelleDe(reg, reg.cleCategorie, attrs[reg.cleCategorie] as string)}
-                    {' › '}
-                    {libelleDe(reg, reg.cleSousCategorie, attrs[reg.cleSousCategorie] as string)}
-                  </dd>
-                </div>
-                {[...reg.tete, ...reg.lat, ...reg.fiche].map(ligne)}
-              </dl>
-            ) : (
-              <p className="text-sm text-ink-secondary italic mt-6">
-                Cet article n&apos;est pas encore décrit dans le référentiel produits.
-              </p>
-            )}
-
-            {variante.seoSlug && (
-              <Link
-                href={`/produit/${variante.seoSlug}`}
-                className="inline-block mt-7 text-sm font-semibold text-sv-primary hover:underline"
-              >
-                Voir la fiche complète →
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -309,7 +195,6 @@ export default function CatalogueClient({
   });
   // Onglet ouvert dans la bande de tête ; null = le premier selon `ordre` du registre.
   const [ongletTete, setOngletTete] = useState<string | null>(null);
-  const [fiche, setFiche] = useState<Groupe<PublicProduct> | null>(null);
 
   // L'état des filtres vit dans l'URL : un tri se partage et Précédent fonctionne.
   useEffect(() => {
@@ -639,7 +524,7 @@ export default function CatalogueClient({
           </div>
 
           {displayed.length > 0 ? (
-            <ProductGrid groupes={displayed} onSelect={setFiche} />
+            <ProductGrid groupes={displayed} />
           ) : (
             <p className="text-ink-secondary text-sm italic">
               Aucun article pour cette combinaison. Retirez un filtre pour élargir la recherche.
@@ -647,15 +532,6 @@ export default function CatalogueClient({
           )}
         </main>
       </div>
-
-      {fiche && (
-        <FicheProduit
-          key={fiche.clef}
-          groupe={fiche}
-          reg={reg}
-          onClose={() => setFiche(null)}
-        />
-      )}
 
       {/* CTA espace pro */}
       {!profile && (

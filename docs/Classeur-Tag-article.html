@@ -701,7 +701,7 @@
     <ol>
       <li class="grp">Comprendre</li>
       <li><a href="#bref"><em>01</em><span>En bref</span></a></li>
-      <li><a href="#feuilles"><em>02</em><span>Les six feuilles</span></a></li>
+      <li><a href="#feuilles"><em>02</em><span>Les sept feuilles</span></a></li>
       <li><a href="#saisie"><em>03</em><span>Lire la feuille PRODUITS</span></a></li>
 
       <li class="grp">Les gestes</li>
@@ -762,9 +762,9 @@
 
     <!-- 02 -->
     <section id="feuilles">
-      <div class="sec-head"><em>02</em><h2>Les six feuilles</h2></div>
+      <div class="sec-head"><em>02</em><h2>Les sept feuilles</h2></div>
 
-      <p>Trois se remplissent à la main, trois se calculent seules. Confondre les deux est la première source d'erreur.</p>
+      <p>Quatre se remplissent à la main, trois se calculent seules. Confondre les deux est la première source d'erreur.</p>
 
       <div class="sheets">
         <div class="sheet">
@@ -781,6 +781,11 @@
           <h4>VALEURS</h4>
           <p>Le référentiel : toutes les options de chaque tag, avec leur libellé affiché et leur teinte.</p>
           <div class="who">Saisie — à chaque nouveauté</div>
+        </div>
+        <div class="sheet">
+          <h4>GROUPES</h4>
+          <p>Une ligne par article décliné : sa <em>devanture</em> — nom, description, image. Rien d'achetable. Créée et outillée par le script.</p>
+          <div class="who">Saisie — par article décliné</div>
         </div>
         <div class="sheet">
           <h4>LISTES</h4>
@@ -1022,7 +1027,13 @@
           <span class="mono">M25CHTA</span> partagent le groupe <span class="mono">M25CHT</span>.</span></li>
         <li>Vérifier qu'elles ont la <strong>même catégorie</strong> et qu'elles diffèrent par au moins un attribut
           marqué <code>axe</code> — couleur ou taille.</li>
-        <li>Rien d'autre. Aucun écran, aucun texte à taper : le libellé du sélecteur et sa pastille viennent de VALEURS.</li>
+        <li><b>GROUPES</b> — une ligne pour ce code : le <strong>nom de l'article</strong> et sa
+          <strong>description</strong>. C'est la <em>devanture</em> : ni une référence, ni quelque chose qui s'achète,
+          seulement ce qu'on voit avant d'avoir choisi.
+          <span class="hint">Déposer sa photo dans Storage sous <code>products/&lt;code groupe&gt;.jpg</code>, ou mettre
+          la référence d'un membre dans <code>image_ref</code> pour réutiliser la sienne. Sans cette ligne le groupe
+          fonctionne quand même, mais la carte montre le premier membre par ordre alphabétique.</span></li>
+        <li>Rien d'autre. Le libellé du sélecteur et sa pastille viennent de VALEURS.</li>
       </ol>
 
       <div class="groupe-demo">
@@ -1036,7 +1047,17 @@
         </table>
       </div>
 
-      <p class="check">CONTRÔLE reste vide sur les deux lignes.</p>
+      <div class="groupe-demo">
+        <table>
+          <caption>GROUPES — la devanture, qui n'est aucune des deux références</caption>
+          <thead><tr><th class="k">groupe</th><th class="k">designation</th><th class="k">description</th><th class="k">image_ref</th><th class="k">actif</th></tr></thead>
+          <tbody>
+            <tr><td class="k">M25CHT</td><td>Chemin de table Éclat</td><td>Chemin de table satiné de cinq mètres, deux coloris.</td><td></td><td>oui</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="check">CONTRÔLE reste vide sur les deux lignes de PRODUITS et sur celle de GROUPES.</p>
 
       <p>
         Le site retient le <strong>premier attribut <code>axe</code> qui distingue tous les membres</strong> du groupe,
@@ -1050,6 +1071,13 @@
         Un filtre couleur ramène le groupe dès qu'<em>une</em> de ses variantes porte la couleur cochée.
         Chaque référence garde son adresse <code>/produit/&lt;slug SEO&gt;</code>, qui ouvre la fiche du groupe
         avec la bonne variante sélectionnée — une couleur précise reste partageable.</p>
+        <p>La carte montre la devanture : son image, son nom, sa description — et <strong>aucune référence</strong>,
+        puisqu'il n'y a rien à commander à ce stade. Ouvrir l'article donne la même chose, plus la
+        <strong>liste des déclinaisons avec la description de chacune</strong> : on les compare sans cliquer. Cliquer
+        sur l'une d'elles bascule tout le panneau sur ce produit — sa référence, sa description, ses attributs, et côté
+        pro son prix et son stock — la liste restant affichée. La devanture ne figure jamais dans cette liste.</p>
+        <p>L'article gagne sa propre adresse, <code>/produit/&lt;slug de la devanture&gt;</code>, qui devient la
+        canonique du groupe ; chaque référence garde la sienne.</p>
       </div>
     </section>
 
@@ -1059,8 +1087,9 @@
 
       <ol class="steps">
         <li>Vérifier que <strong>toutes</strong> les colonnes CONTRÔLE sont vides. C'est le seul feu vert.</li>
-        <li>Menu <b>Firestore › Exporter vers Drive</b> — trois fichiers sont déposés :
-          <code>SV_ATTRIBUTS.csv</code>, <code>SV_VALEURS.csv</code>, <code>SV_PRODUITS.csv</code>.
+        <li>Menu <b>Firestore › Exporter vers Drive</b> — quatre fichiers sont déposés :
+          <code>SV_ATTRIBUTS.csv</code>, <code>SV_VALEURS.csv</code>, <code>SV_PRODUITS.csv</code>,
+          <code>SV_GROUPES.csv</code>.
           <span class="hint">L'export refuse de tourner s'il reste une anomalie — il nomme alors les références
           fautives — ou si EXPORT couvre moins de références que PRODUITS.</span>
           <span class="hint">Un fichier dont le contenu n'a pas bougé n'est pas réécrit : l'export l'annonce
@@ -1080,9 +1109,10 @@
       <p>
         PRODUITS <span class="muted">→</span> EXPORT, qui recolle les slots d'un même tag
         (<span class="mono">Couleur 1 = or</span>, <span class="mono">Couleur 2 = blanc</span> deviennent
-        <span class="mono">couleur = or|blanc</span>) <span class="muted">→</span> trois CSV sur le Drive, en-tête
+        <span class="mono">couleur = or|blanc</span>) <span class="muted">→</span> quatre CSV sur le Drive, en-tête
         sur les clés techniques <span class="muted">→</span> Cloud Function <span class="muted">→</span> Firestore,
-        collections <code>attribute-registry</code>, <code>attribute-values</code>, <code>product-attributes</code>
+        collections <code>attribute-registry</code>, <code>attribute-values</code>, <code>product-attributes</code>,
+        <code>attribute-groups</code>
         <span class="muted">→</span> menu des categorie, bandeau de filtres, facettes et fiche produit.
       </p>
       <p>
@@ -1259,7 +1289,7 @@
       <div class="sec-head"><em>17</em><h2>Protocole de test</h2></div>
 
       <p class="lede">
-        Trente et une vérifications en cinq blocs. Les trois premiers se font entièrement dans le classeur ;
+        Trente-deux vérifications en cinq blocs. Les trois premiers se font entièrement dans le classeur ;
         les deux derniers après une vraie synchronisation.
       </p>
 
@@ -1318,7 +1348,7 @@
         </table>
       </div>
 
-      <div class="bloc-title"><h3>Bloc D — Export et synchronisation</h3><span>7 tests · classeur puis Drive</span></div>
+      <div class="bloc-title"><h3>Bloc D — Export et synchronisation</h3><span>8 tests · classeur puis Drive</span></div>
 
       <div class="scroller">
         <table class="tests">
@@ -1327,8 +1357,9 @@
             <tr><td class="id">D1</td><td>Prendre un produit à deux couleurs et lire sa ligne dans EXPORT.</td><td class="exp">Un seul champ couleur : <span class="mono">or|blanc</span>. Aucune barre en trop en fin de champ.</td><td class="box">☐</td></tr>
             <tr><td class="id">D2</td><td>Ajouter une référence tout en bas de PRODUITS.</td><td class="exp">Elle apparaît dans EXPORT <strong>sans rien recopier</strong>, et reçoit son contrôle et son pourcentage.</td><td class="box">☐</td></tr>
             <tr><td class="id">D3</td><td>Laisser volontairement une ligne en anomalie et lancer « Exporter vers Drive ».</td><td class="exp">L'export <strong>refuse</strong> et nomme les références fautives. Rien n'est déposé sur le Drive.</td><td class="box">☐</td></tr>
-            <tr><td class="id">D4</td><td>Corriger, exporter, puis ouvrir les trois CSV déposés.</td><td class="exp">La première ligne de chaque fichier contient les clés techniques, jamais les libellés lisibles.</td><td class="box">☐</td></tr>
-            <tr><td class="id">D5</td><td>Relancer « Exporter vers Drive » aussitôt, sans rien toucher.</td><td class="exp">Les trois fichiers ressortent <span class="mono">inchangé</span>, l'alerte dit que rien n'a bougé, et <code>_SYNC</code> le consigne. Aucun fichier n'est réécrit sur le Drive.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D4</td><td>Corriger, exporter, puis ouvrir les quatre CSV déposés.</td><td class="exp">La première ligne de chaque fichier contient les clés techniques, jamais les libellés lisibles.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D5</td><td>Relancer « Exporter vers Drive » aussitôt, sans rien toucher.</td><td class="exp">Les quatre fichiers ressortent <span class="mono">inchangé</span>, l'alerte dit que rien n'a bougé, et <code>_SYNC</code> le consigne. Aucun fichier n'est réécrit sur le Drive.</td><td class="box">☐</td></tr>
+            <tr><td class="id">D5b</td><td>Dans GROUPES, effacer le nom d'un article, puis exporter.</td><td class="exp">L'export <strong>refuse</strong> en nommant <span class="mono">groupe &lt;code&gt;</span>, comme il le ferait d'une référence fautive. Le slug de la devanture se vide au passage.</td><td class="box">☐</td></tr>
             <tr><td class="id">D6</td><td>Lancer la carte « Attributs produits » de <code>/admin/sync</code>, puis la relancer sans rien changer.</td><td class="exp">La seconde passe annonce tout en <span class="mono">inchangé</span>.</td><td class="box">☐</td></tr>
             <tr><td class="id">D7</td><td>Passer une référence en <code>brouillon</code>, retirer une valeur de VALEURS, resynchroniser.</td><td class="exp">Le compteur <span class="mono">supprimé</span> bouge des deux côtés : le classeur retire vraiment.</td><td class="box">☐</td></tr>
           </tbody>

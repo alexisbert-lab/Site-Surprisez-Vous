@@ -35,16 +35,31 @@ export interface Variante<P extends AvecRef> {
   seoSlug: string;
 }
 
+/**
+ * La devanture d'un article décliné : ce qu'on voit avant d'avoir choisi.
+ *
+ * Elle ne correspond à aucune référence de l'ERP et ne s'achète pas — elle n'apparaît
+ * donc jamais dans la liste des déclinaisons, qui ne montre que du vendable.
+ */
+export interface Devanture {
+  designation: string;
+  description: string;
+  /** Fichier de Storage sous `products/`, à défaut le code de groupe. */
+  imageRef: string;
+  seoSlug: string;
+}
+
 export interface Groupe<P extends AvecRef> {
   /** Identifiant interne, préfixé pour qu'un code de groupe ne heurte jamais une référence. */
   clef: string;
-  /** Membre qui porte l'image, la désignation de la carte et l'URL canonique. */
-  chef: P;
   /**
-   * Description de l'article, distincte de celles des références. Affichée tant que
-   * le chef est sélectionné ; une variante choisie montre la sienne à la place.
+   * Premier membre par ordre de référence. Ancrage technique — identité de la fusion,
+   * repli d'affichage quand aucune devanture n'est décrite. Ce n'est pas un « chef » :
+   * la vitrine d'un article, c'est `devanture`.
    */
-  description: string;
+  chef: P;
+  /** `undefined` tant que le groupe n'a pas de ligne dans la feuille GROUPES. */
+  devanture: Devanture | undefined;
   membres: P[];
   variantes: Variante<P>[];
   /** Attributs des membres, pour les filtres et les compteurs. */
@@ -132,16 +147,13 @@ function construire<P extends AvecRef>(
   reg: Registry,
   meta: ProductGroup | undefined
 ): Groupe<P> {
-  // Tri par référence : l'ordre de l'ERP ne doit peser ni sur l'affichage ni sur le
-  // repli quand la feuille GROUPES ne désigne aucune référence maître.
+  // Tri par référence : ni l'ordre de l'ERP ni celui du classeur ne doivent décider
+  // quelle déclinaison ouvre la liste, ni laquelle sert de repli sans devanture.
   const tries = [...membres].sort((a, b) => a.pdt_reference.localeCompare(b.pdt_reference));
   const axe = trouverAxe(tries, attributs, reg);
-  const chef = tries.find((p) => p.pdt_reference === meta?.ref_principale) ?? tries[0];
-  // Le chef ouvre la liste : tout ce qui lit `variantes[0]` — canonique, repli de
-  // `variantePourSlug` — désigne alors la référence maître sans le savoir.
-  const ordonnes = [chef, ...tries.filter((p) => p !== chef)];
+  const chef = tries[0];
 
-  const variantes = ordonnes.map((produit) => {
+  const variantes = tries.map((produit) => {
     const attrs = attributs[produit.pdt_reference];
     const slug = axe ? premier(attrs?.[axe.cle]) : '';
     return {
@@ -160,8 +172,16 @@ function construire<P extends AvecRef>(
   return {
     clef,
     chef,
-    description: meta?.description ?? '',
-    membres: ordonnes,
+    devanture: meta && meta.designation
+      ? {
+          designation: meta.designation,
+          description: meta.description,
+          // Sans fichier nommé, la photo de la devanture porte le code du groupe.
+          imageRef: meta.image_ref || meta.groupe,
+          seoSlug: meta.seo_slug,
+        }
+      : undefined,
+    membres: tries,
     variantes,
     attrs: variantes.map((v) => v.attrs),
     fusion: fusionner(chef.pdt_reference, variantes.map((v) => v.attrs)),
@@ -179,6 +199,10 @@ export function grouper<P extends AvecRef>(
   const paquets = new Map<string, P[]>();
   const codes = new Map<string, string>();
   for (const p of produits) {
+    // Le cache produits porte des lignes sans référence — des mises à jour de
+    // colisage arrivées avant leur article. Sans ce filtre, le tri par référence
+    // de `construire` casse la page entière au lieu d'ignorer une ligne vide.
+    if (!p.pdt_reference) continue;
     const attrs = attributs[p.pdt_reference];
     const code = codeGroupe(attrs, reg);
     const clef = code ? `g:${code}` : `r:${p.pdt_reference}`;
@@ -197,7 +221,8 @@ export function grouper<P extends AvecRef>(
 /**
  * Vue « déclinaison » d'un groupe, pour le catalogue pro qui présente les variantes en
  * bande dépliable. Remplace la collection `declinations` saisie à la main : la désignation
- * vient du chef, le sous-titre du libellé de l'axe, les libellés de variante du référentiel.
+ * vient de la devanture, le sous-titre du libellé de l'axe, les libellés de variante du
+ * référentiel. Seuls les variants s'achètent — la devanture n'a ni prix ni stock.
  */
 export interface Declinaison {
   id: string;
@@ -215,9 +240,10 @@ export function versDeclinaisons<P extends AvecRef>(
     .filter((g) => g.variantes.length > 1)
     .map((g) => ({
       id: g.clef,
-      designation: g.chef.pdt_designation || g.chef.pdt_reference,
+      designation:
+        g.devanture?.designation || g.chef.pdt_designation || g.chef.pdt_reference,
       sous_titre: g.axe?.libelle,
-      description: g.description,
+      description: g.devanture?.description ?? '',
       variants: g.variantes.map((v) => ({
         label: v.libelle,
         ref: v.produit.pdt_reference,
@@ -226,10 +252,34 @@ export function versDeclinaisons<P extends AvecRef>(
     }));
 }
 
-/** Retrouve la variante ouverte depuis une URL. Repli sur le chef du groupe. */
+/** Retrouve la variante ouverte depuis une URL. Repli sur le premier membre. */
 export function variantePourSlug<P extends AvecRef>(
   groupe: Groupe<P>,
   seoSlug: string
 ): Variante<P> {
   return groupe.variantes.find((v) => v.seoSlug === seoSlug) ?? groupe.variantes[0];
+}
+
+/**
+ * L'URL désigne-t-elle la devanture plutôt qu'une déclinaison ?
+ *
+ * Un article décliné a deux sortes d'adresses : celle de sa devanture, qui l'ouvre sur
+ * la vue d'ensemble, et une par référence achetable. Sans devanture décrite, tout slug
+ * mène à une variante et cette question n'a pas lieu d'être.
+ */
+export function estDevanture<P extends AvecRef>(
+  groupe: Groupe<P>,
+  seoSlug: string
+): boolean {
+  return !!groupe.devanture?.seoSlug && groupe.devanture.seoSlug === seoSlug;
+}
+
+/** Le groupe dont une URL — devanture ou déclinaison — ouvre la fiche. */
+export function groupePourSlug<P extends AvecRef>(
+  groupes: Groupe<P>[],
+  seoSlug: string
+): Groupe<P> | undefined {
+  return groupes.find(
+    (g) => g.devanture?.seoSlug === seoSlug || g.variantes.some((v) => v.seoSlug === seoSlug)
+  );
 }

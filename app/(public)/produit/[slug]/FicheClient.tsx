@@ -7,7 +7,7 @@ import { ChevronRight } from 'lucide-react';
 import type { PublicProduct } from '@/lib/firestore/products';
 import type { AttributeDef } from '@/lib/firestore/attributes';
 import { libelleDe, type Registry } from '@/lib/attributes';
-import { variantePourSlug, type Groupe } from '@/lib/declinaisons';
+import { variantePourSlug, estDevanture, type Groupe } from '@/lib/declinaisons';
 import { ProductImage } from '@/components/ui/ProductImage';
 import ListeDeclinaisons from '@/components/catalogue/ListeDeclinaisons';
 
@@ -22,22 +22,30 @@ export default function FicheClient({ groupe, reg, slug }: {
   slug: string;
 }) {
   const router = useRouter();
-  const [refSel, setRefSel] = useState(variantePourSlug(groupe, slug).produit.pdt_reference);
+  const dev = groupe.devanture;
+  // L'URL de la devanture ouvre l'article sans rien sélectionner ; celle d'une référence
+  // ouvre directement sur elle. Une couleur précise reste donc partageable.
+  const [refSel, setRefSel] = useState(
+    estDevanture(groupe, slug) ? '' : variantePourSlug(groupe, slug).produit.pdt_reference
+  );
 
-  const variante =
-    groupe.variantes.find((v) => v.produit.pdt_reference === refSel) ?? groupe.variantes[0];
-  const { produit, attrs } = variante;
+  const variante = groupe.variantes.find((v) => v.produit.pdt_reference === refSel);
+  const surDevanture = !variante;
+  const produit = variante?.produit ?? groupe.chef;
+  // Sur la devanture, la fiche décrit l'article : ses attributs sont l'union de ceux de
+  // ses déclinaisons, la même que celle qui sert aux filtres.
+  const attrs = variante ? variante.attrs : groupe.fusion;
 
   const choisir = (ref: string, seoSlug: string) => {
     setRefSel(ref);
     if (seoSlug && seoSlug !== slug) router.replace(`/produit/${seoSlug}`, { scroll: false });
   };
 
-  // Le maître parle pour l'article entier ; une variante choisie ne parle que d'elle.
-  const description =
-    produit.pdt_reference === groupe.chef.pdt_reference
-      ? groupe.description || attrs?.description_courte || ''
-      : attrs?.description_courte ?? '';
+  const titre = surDevanture ? (dev?.designation ?? produit.pdt_designation) : produit.pdt_designation;
+  const imageRef = surDevanture ? (dev?.imageRef || produit.pdt_reference) : produit.pdt_reference;
+  const description = surDevanture
+    ? dev?.description || groupe.variantes[0]?.description || ''
+    : variante?.description ?? '';
 
   const categorie = attrs?.[reg.cleCategorie] as string | undefined;
   const sousCategorie = attrs?.[reg.cleSousCategorie] as string | undefined;
@@ -90,15 +98,18 @@ export default function FicheClient({ groupe, reg, slug }: {
       <div className="grid md:grid-cols-2 gap-8 md:gap-12">
         <div className="bg-section-alt rounded-2xl flex items-center justify-center p-8 md:p-12 md:min-h-125">
           <ProductImage
-            imageRef={produit.pdt_reference}
+            imageRef={imageRef}
             className="w-full h-full max-h-125 object-contain"
           />
         </div>
 
         <div>
-          <p className="text-xs text-ink-secondary font-mono">{produit.pdt_reference}</p>
+          {/* Rien à commander sur la devanture : pas de référence affichée. */}
+          {!surDevanture && (
+            <p className="text-xs text-ink-secondary font-mono">{produit.pdt_reference}</p>
+          )}
           <h1 className="text-3xl md:text-4xl font-extrabold text-ink leading-tight mt-2 font-[family-name:var(--font-heading)]">
-            {produit.pdt_designation}
+            {titre}
           </h1>
           {description && (
             <p className="text-base text-ink-secondary mt-5 leading-relaxed">

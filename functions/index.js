@@ -1214,12 +1214,15 @@ const FICHIERS_SYNC = {
     return { collection: "product-attributes", nouveau, modifie, inchange, supprime, ignore };
   },
 
-  // Une ligne par article decline : la reference maitre et la description du groupe.
-  // Sans registre a lire, ce handler ne depend d'aucun autre — mais il vient en
-  // dernier, le code de groupe n'ayant de sens qu'une fois les produits ecrits.
+  // Une ligne par article decline : sa devanture. Rien la-dedans n'est une reference
+  // de l'ERP et rien ne s'achete — c'est ce qu'on voit avant d'avoir choisi. Sans
+  // registre a lire, ce handler ne depend d'aucun autre, mais il vient en dernier :
+  // un code de groupe n'a de sens qu'une fois les produits ecrits.
   "SV_GROUPES.csv": async (rows) => {
-    const champsCompares = ["ref_principale", "description"];
-    const existingMap = await readCollectionMap("product-groups");
+    const slugifier = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const champsCompares = ["designation", "description", "image_ref", "seo_slug"];
+    const existingMap = await readCollectionMap("attribute-groups");
     const vus = new Set();
     let batch = db.batch();
     let ops = 0, nouveau = 0, modifie = 0, inchange = 0, ignore = 0;
@@ -1231,16 +1234,20 @@ const FICHIERS_SYNC = {
       const docId = groupe.replace(/\//g, "__");
       vus.add(docId);
 
+      const designation = (row.designation || row.libelle || "").toString().trim();
       const incoming = {
         groupe,
-        ref_principale: (row.ref_principale || "").toString().trim(),
+        designation,
         description: (row.description || "").toString().trim(),
+        image_ref: (row.image_ref || row.image || "").toString().trim(),
+        // Le classeur peut ne pas exporter l'URL : on la derive alors de l'entete.
+        seo_slug: (row.seo_slug || "").toString().trim() || slugifier(designation),
       };
 
       const existing = existingMap.get(docId);
       const change = !existing || champsCompares.some((f) => existing[f] !== incoming[f]);
       if (!change) { inchange++; continue; }
-      batch.set(db.collection("product-groups").doc(docId), incoming, { merge: true });
+      batch.set(db.collection("attribute-groups").doc(docId), incoming, { merge: true });
       if (existing) modifie++; else nouveau++;
       ops++;
       if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
@@ -1250,15 +1257,15 @@ const FICHIERS_SYNC = {
     let supprime = 0;
     for (const docId of existingMap.keys()) {
       if (vus.has(docId)) continue;
-      batch.delete(db.collection("product-groups").doc(docId));
+      batch.delete(db.collection("attribute-groups").doc(docId));
       supprime++;
       ops++;
       if (ops % 450 === 0) { await batch.commit(); batch = db.batch(); }
     }
 
     if (ops % 450 !== 0) await batch.commit();
-    await callRevalidate(["product-groups"]);
-    return { collection: "product-groups", nouveau, modifie, inchange, supprime, ignore };
+    await callRevalidate(["attribute-groups"]);
+    return { collection: "attribute-groups", nouveau, modifie, inchange, supprime, ignore };
   },
 };
 

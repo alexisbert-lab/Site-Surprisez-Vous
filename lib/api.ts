@@ -1,7 +1,7 @@
 import { getCached, setCached } from './client-cache';
 import { MODE_LOCAL } from './local-mode';
 import { lireStoreLocal, lireStoreLocalEntier } from './local-store';
-import type { Product } from './firestore/products';
+import { sansLignesOrphelines, type Product } from './firestore/products';
 import type { Category } from './firestore/categories';
 import type { StatCategory } from './firestore/stat-categories';
 import type { Catalogue } from './firestore/catalogues';
@@ -71,9 +71,9 @@ export interface SiteSettings {
 }
 
 export const api = {
-  getProducts:       async () => MODE_LOCAL
+  getProducts:       async () => sansLignesOrphelines(MODE_LOCAL
     ? (await lireStoreLocalEntier<Product[]>('products')) ?? []
-    : fetchCollection<Product[]>('products'),
+    : await fetchCollection<Product[]>('products')),
   getCategories:     () => fetchCollection<Category[]>('categories'),
   getStatCategories: () => fetchCollection<StatCategory[]>('stat-categories'),
   // Mode local : la Cloud Function servirait le contenu de production, alors que

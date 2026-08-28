@@ -11,7 +11,7 @@ import {
 } from '@/lib/server-cache';
 import { filterArticlesVisiblesWithStatCats } from '@/lib/firestore/products';
 import { buildRegistry } from '@/lib/attributes';
-import { grouper, variantePourSlug } from '@/lib/declinaisons';
+import { grouper, variantePourSlug, groupePourSlug, estDevanture } from '@/lib/declinaisons';
 import FicheClient from './FicheClient';
 
 /**
@@ -37,8 +37,7 @@ const chargerGroupe = cache(async (slug: string) => {
   ]);
   const reg = buildRegistry(defs, valeurs);
   const visibles = filterArticlesVisiblesWithStatCats(produits, statCats);
-  const groupe = grouper(visibles, attributs, reg, groupes)
-    .find((g) => g.variantes.some((v) => v.seoSlug === slug));
+  const groupe = groupePourSlug(grouper(visibles, attributs, reg, groupes), slug);
   return groupe ? { groupe, reg } : null;
 });
 
@@ -49,11 +48,23 @@ export async function generateMetadata(
   const trouve = await chargerGroupe(slug);
   if (!trouve) return { title: 'Article introuvable' };
 
-  const variante = variantePourSlug(trouve.groupe, slug);
-  const canonique = trouve.groupe.variantes[0].seoSlug || slug;
+  const { groupe } = trouve;
+  const dev = groupe.devanture;
+  // La canonique d'un article décliné est sa devanture quand il en a une : c'est elle
+  // qui décrit l'ensemble, chaque référence n'en étant qu'une déclinaison.
+  const canonique = dev?.seoSlug || groupe.variantes[0].seoSlug || slug;
+
+  if (estDevanture(groupe, slug)) {
+    return {
+      title: dev!.designation,
+      description: dev!.description || undefined,
+      alternates: { canonical: `/produit/${canonique}` },
+    };
+  }
+  const variante = variantePourSlug(groupe, slug);
   return {
     title: variante.produit.pdt_designation,
-    description: variante.attrs?.description_courte || undefined,
+    description: variante.description || undefined,
     alternates: { canonical: `/produit/${canonique}` },
   };
 }

@@ -67,7 +67,9 @@ npm run local:data -- --erp   # ou l'export ERP complet + attributs déduits
 
 Le référentiel ne vient jamais de Firestore : il est lu dans les exports du classeur déposés en `.local-data/csv/`, ou à défaut dans les blocs du prototype. Les onglets sont reconnus par un mot du nom de fichier — `attribut`, `valeur`, `produit` — donc un export brut de Sheets (`Classeur SV - ATTRIBUTS.csv`) fonctionne sans renommage ; en cas de doublon, le fichier le plus récent gagne. Le script commence par lister chaque source avec sa date de modification, ou le repli employé si elle manque. **Le site ne lit aucun CSV** : pour répercuter une modification du classeur, remplacer le fichier puis relancer la commande — les fixtures sont relues à chaud, un rechargement de page suffit.
 
-Ajouter `NEXT_PUBLIC_SV_LOCAL_DATA=1` étend le mode local à l'édition : `/admin/editeur` et `/admin/personnalisation` écrivent alors dans `.local-data/page-content.json` et `.local-data/site-settings.json` (route `/api/local-store`), et les images téléversées atterrissent dans `public/local-uploads/` au lieu de Firebase Storage. Rien ne part en production, et la route est fermée hors développement.
+Ajouter `NEXT_PUBLIC_SV_LOCAL_DATA=1` étend le mode local à l'édition : `/admin/editeur` et `/admin/personnalisation` écrivent alors dans `.local-data/page-content.json` et `.local-data/site-settings.json` (route `/api/local-store`), les images téléversées atterrissent dans `public/local-uploads/` au lieu de Firebase Storage, et `/admin` s'ouvre sans connexion Firebase. Rien ne part en production, et tout est fermé hors développement.
+
+Une démo se fige et se rejoue : `npm run local:save -- avant-demo`, `npm run local:restore -- avant-demo`, `npm run local:reset`. Mode d'emploi complet dans [docs/MODE-LOCAL.md](docs/MODE-LOCAL.md).
 
 ## Scripts
 
@@ -78,6 +80,7 @@ Ajouter `NEXT_PUBLIC_SV_LOCAL_DATA=1` étend le mode local à l'édition : `/adm
 | `npm run lint` | Lint Next.js |
 | `npm run seed` / `npm run unseed` | Injection / suppression des données de démo |
 | `npm run local:data` | Génération des fixtures du mode local |
+| `npm run local:save` / `local:restore` / `local:list` / `local:reset` | Instantanés de l'état d'édition local |
 | `npm run create-users` / `delete-users` | Comptes Firebase Auth de démo |
 | `npm run test` / `test:watch` / `test:coverage` | Tests unitaires Vitest |
 | `npm run test:e2e` / `test:e2e:ui` | Tests Playwright |
@@ -91,4 +94,5 @@ Ajouter `NEXT_PUBLIC_SV_LOCAL_DATA=1` étend le mode local à l'édition : `/adm
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — présentation de l'architecture
+- [docs/MODE-LOCAL.md](docs/MODE-LOCAL.md) — éditer et démontrer le site hors ligne, sauvegarder / restaurer une démo
 - [docs/CAHIER-DE-TEST.md](docs/CAHIER-DE-TEST.md) — cahier de test manuel
