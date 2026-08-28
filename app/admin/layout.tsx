@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import AdminSidebar from '@/components/AdminSidebar';
 import AdminNotifBell from '@/components/admin/AdminNotifBell';
@@ -9,13 +9,20 @@ import AdminNotifBell from '@/components/admin/AdminNotifBell';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // La page de connexion vit sous /admin : sans cette exception, la garde ci-dessous
+  // la renverrait vers elle-même et ne rendrait jamais le formulaire.
+  const estPageConnexion = pathname === '/admin/connexion';
+
   useEffect(() => {
-    if (!loading && (!user || profile?.role !== 'admin')) {
+    if (!estPageConnexion && !loading && (!user || profile?.role !== 'admin')) {
       router.push('/admin/connexion');
     }
-  }, [user, profile, loading, router]);
+  }, [estPageConnexion, user, profile, loading, router]);
+
+  if (estPageConnexion) return <>{children}</>;
 
   if (loading) {
     return (
