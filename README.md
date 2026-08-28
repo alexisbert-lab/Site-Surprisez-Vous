@@ -88,7 +88,7 @@ Une démo se fige et se rejoue : `npm run local:save -- avant-demo`, `npm run lo
 
 ## Déploiement
 
-- **Site** : Firebase App Hosting, configuré par `apphosting.yaml` (build + variables d'environnement). La construction **n'est pas automatique au push** : un déploiement se déclenche à la main par `npm run deploy:preprod`, qui construit la branche `develop` telle qu'elle est **sur GitHub** — ce qui n'est pas poussé ne part pas.
+- **Site** : Firebase App Hosting, configuré par `apphosting.yaml` (build + variables d'environnement). `npm run deploy:preprod` déclenche un rollout immédiat de la branche `develop` **telle qu'elle est sur GitHub** — ce qui n'est pas poussé ne part pas. Compter une dizaine de minutes de build.
 - **Backend** : `npm run deploy:rules` (Firestore, Storage, Realtime Database) · `npm run deploy:functions`.
 
 ## Documentation
